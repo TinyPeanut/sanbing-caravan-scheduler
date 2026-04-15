@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三国冰河时代 - 同盟商队自动排期系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        @media (max-width: 768px) {
+            input, select, button { font-size: 14px; }
+            .touch-target { min-height: 44px; padding: 8px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="flex h-screen overflow-hidden bg-gray-50">
+        <header class="md:hidden bg-white shadow-sm border-b p-3 flex justify-between items-center z-50 fixed top-0 left-0 right-0 h-14">
+            <div class="flex items-center">
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2">☰</button>
+                <h1 class="font-bold text-gray-800 text-lg">🚚 商队排期</h1>
+            </div>
+            <div class="flex space-x-2">
+                <button @click="downloadJSON" class="p-2 text-green-600 bg-green-50 rounded-lg">💾</button>
+                <label class="p-2 text-gray-600 bg-gray-100 rounded-lg cursor-pointer">📂 <input type="file" @change="uploadJSON" accept=".json" class="hidden"></label>
+            </div>
+        </header>
+
+        <aside :class="['bg-white shadow-lg flex flex-col z-40 transition-transform duration-300 fixed md:relative inset-y-0 left-0 w-64', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']">
+            <div class="p-6 border-b border-gray-100 hidden md:block">
+                <h1 class="text-xl font-bold text-gray-800">🚚 商队排期系统</h1>
+                <p class="text-xs text-gray-400 mt-1">v2.4.0 | 稳定版</p>
+            </div>
+            <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded">✕</button>
+            <nav class="flex-1 p-4 space-y-1 mt-14 md:mt-0">
+                <a @click="currentView = 'members'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition', currentView === 'members' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50']">👥 人员管理</a>
+                <a @click="currentView = 'batches'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition', currentView === 'batches' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50']">📅 批次与池子</a>
+                <a @click="currentView = 'schedule'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition', currentView === 'schedule' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50']">🚛 排期管理</a>
+                <a @click="currentView = 'calendar'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition', currentView === 'calendar' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50']">🗓️ 日历视图</a>
+                <a @click="currentView = 'stats'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition', currentView === 'stats' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50']">📊 统计分析</a>
+            </nav>
+            <div class="p-4 border-t border-gray-100 hidden md:block space-y-2">
+                <button @click="downloadJSON" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition text-sm font-medium">💾 导出备份</button>
+                <label class="w-full bg-gray-100 text-gray-600 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center justify-center cursor-pointer">📂 导入备份<input type="file" @change="uploadJSON" accept=".json" class="hidden"></label>
+                <button @click="showCloudConfig = true" class="w-full bg-purple-50 text-purple-600 py-2 rounded-lg hover:bg-purple-100 transition text-sm font-medium">☁️ 云端同步</button>
+            </div>
+        </aside>
+        <div v-if="mobileMenuOpen" @click="mobileMenuOpen = false" class="fixed inset-0 bg-black bg-opacity-40 z-30 md:hidden"></div>
+
+        <main class="flex-1 overflow-y-auto pt-14 md:pt-0 p-4 md:p-8">
+            <!-- 人员管理 -->
+            <div v-if="currentView === 'members'" class="max-w-6xl mx-auto space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-xl font-bold text-gray-800">人员导入</h2>
+                        <button @click="openAddPersonModal" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">➕ 单条新增</button>
+                    </div>
+                    <textarea v-model="importText" rows="4" class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-xs text-gray-700 bg-gray-50" placeholder="粘贴游戏导出的表格文本（含表头）..."></textarea>
+                    <div class="flex flex-wrap gap-3 mt-3">
+                        <button @click="parseImport" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium touch-target">解析预览</button>
+                        <button @click="importText = ''" class="px-5 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition touch-target">清空</button>
+                    </div>
+                </div>
+                <div v-if="parsedData.length > 0" class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-semibold">预览结果 ({{ parsedData.length }} 条)</h3>
+                        <button @click="confirmImport" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium touch-target">确认导入</button>
+                    </div>
+                    <div class="overflow-y-auto max-h-64 border rounded-lg">
+                        <table class="min-w-full text-sm text-left">
+                            <thead class="bg-gray-50 sticky top-0 z-10"><tr><th class="px-3 py-2">状态</th><th class="px-3 py-2">名称</th><th class="px-3 py-2">阶级</th><th class="px-3 py-2">战力</th></tr></thead>
+                            <tbody>
+                                <tr v-for="(row, idx) in parsedData" :key="idx" class="border-b hover:bg-gray-50">
+                                    <td class="px-3 py-2"><span :class="existingMemberIds.includes(row.id) ? 'text-blue-600' : 'text-green-600'">{{ existingMemberIds.includes(row.id) ? '更新' : '新增' }}</span></td>
+                                    <td class="px-3 py-2 font-medium">{{ row.name }}</td>
+                                    <td class="px-3 py-2">{{ row.class }}</td>
+                                    <td class="px-3 py-2">{{ row.power }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">现有成员 ({{ filteredMembers.length }})</h3>
+                        <button @click="clearAllMembers" class="text-red-500 text-sm hover:underline">清空所有</button>
+                    </div>
+                    <div class="flex flex-wrap gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex-1 min-w-[140px]"><label class="text-xs font-medium text-gray-500 block mb-1">名称搜索</label><input v-model="memberFilters.name" type="text" class="w-full p-2 border rounded text-sm"></div>
+                        <div class="w-24"><label class="text-xs font-medium text-gray-500 block mb-1">最小阶级</label><input v-model.number="memberFilters.minClass" type="number" class="w-full p-2 border rounded text-sm"></div>
+                        <div class="w-32"><label class="text-xs font-medium text-gray-500 block mb-1">最小战力</label><input v-model.number="memberFilters.minPower" type="number" class="w-full p-2 border rounded text-sm"></div>
+                        <div class="flex-1 min-w-[140px]"><label class="text-xs font-medium text-gray-500 block mb-1">排序方式</label><select v-model="memberFilters.sortBy" class="w-full p-2 border rounded text-sm"><option value="power_desc">战力降序</option><option value="power_asc">战力升序</option><option value="class_desc">阶级降序</option></select></div>
+                        <div class="flex items-end"><button @click="resetMemberFilters" class="w-full p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm touch-target">重置条件</button></div>
+                    </div>
+                    <div class="overflow-x-auto max-h-96 rounded-lg border">
+                        <table class="min-w-full text-sm text-left border-collapse">
+                            <thead class="bg-gray-50 sticky top-0 z-10">
+                                <tr><th class="p-2 border">名称</th><th class="p-2 border">阶级</th><th class="p-2 border">火炉</th><th class="p-2 border">战力</th><th class="p-2 border">周功勋</th><th class="p-2 border">总功勋</th><th class="p-2 border">周捐献</th><th class="p-2 border">操作</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="m in filteredMembers" :key="m.id" class="border-b hover:bg-gray-50">
+                                    <td class="p-2 border font-medium">{{ m.name }}</td>
+                                    <td class="p-2 border text-center">{{ m.class }}</td>
+                                    <td class="p-2 border text-center">{{ m.furnace }}</td>
+                                    <td class="p-2 border text-right font-mono">{{ m.power }}</td>
+                                    <td class="p-2 border text-right font-mono">{{ m.weekMerit }}</td>
+                                    <td class="p-2 border text-right font-mono">{{ m.totalMerit }}</td>
+                                    <td class="p-2 border text-right font-mono">{{ m.weekDonation }}</td>
+                                    <td class="p-2 border text-center"><button @click="deleteMember(m.id)" class="text-red-500 hover:text-red-700 text-sm touch-target">移除</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批次与池子 -->
+            <div v-if="currentView === 'batches'" class="max-w-5xl mx-auto space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                    <h2 class="text-xl font-bold mb-4">创建新批次</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input v-model="newBatch.name" placeholder="批次名称" class="p-2 border rounded">
+                        <input v-model="newBatch.start" type="date" class="p-2 border rounded">
+                        <input v-model="newBatch.end" type="date" class="p-2 border rounded">
+                    </div>
+                    <button @click="createBatch" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition touch-target">创建批次</button>
+                </div>
+                <div class="space-y-4">
+                    <div v-for="batch in batches" :key="batch.id" class="bg-white rounded-xl shadow-sm p-4 md:p-6 border-l-4 transition" :class="currentBatchId === batch.id ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                            <div><h3 class="text-lg font-bold">{{ batch.name }}</h3><p class="text-sm text-gray-500">{{ batch.start }} 至 {{ batch.end }}</p></div>
+                            <div class="flex space-x-2 w-full sm:w-auto">
+                                <button @click="currentBatchId = batch.id" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition" :class="currentBatchId === batch.id ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'">{{ currentBatchId === batch.id ? '当前选中' : '选中编辑' }}</button>
+                                <button @click="deleteBatch(batch.id)" class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 text-sm touch-target">删除</button>
+                            </div>
+                        </div>
+                        <div v-if="currentBatchId === batch.id" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <div class="flex justify-between items-center mb-3"><h4 class="font-bold text-blue-700">👑 队长池</h4><button @click="openMemberSelector(batch, 'leader')" class="text-sm bg-white border border-blue-300 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-50 touch-target">选择人员 ({{ batch.leaderPool.members.length }})</button></div>
+                                <div class="space-y-2 max-h-48 overflow-y-auto"><div v-for="pm in batch.leaderPool.members" :key="pm.id" class="flex items-center justify-between bg-white p-2 rounded"><span class="text-sm">{{ getMemberName(pm.id) }}</span><div class="flex items-center space-x-1"><span class="text-xs text-gray-500">次:</span><input v-model.number="pm.maxTimes" type="number" min="1" class="w-14 p-1 border rounded text-center text-sm"></div></div></div>
+                                <div v-if="!batch.leaderPool.members.length" class="text-sm text-gray-400 text-center py-4">未选择人员</div>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-lg border border-green-100">
+                                <div class="flex justify-between items-center mb-3"><h4 class="font-bold text-green-700">🛡️ 护卫池</h4><button @click="openMemberSelector(batch, 'guard')" class="text-sm bg-white border border-green-300 text-green-600 px-3 py-1.5 rounded hover:bg-green-50 touch-target">选择人员 ({{ batch.guardPool.members.length }})</button></div>
+                                <div class="space-y-2 max-h-48 overflow-y-auto"><div v-for="pm in batch.guardPool.members" :key="pm.id" class="flex items-center justify-between bg-white p-2 rounded"><span class="text-sm">{{ getMemberName(pm.id) }}</span><div class="flex items-center space-x-1"><span class="text-xs text-gray-500">次:</span><input v-model.number="pm.maxTimes" type="number" min="1" class="w-14 p-1 border rounded text-center text-sm"></div></div></div>
+                                <div v-if="!batch.guardPool.members.length" class="text-sm text-gray-400 text-center py-4">未选择人员</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 排期管理 -->
+            <div v-if="currentView === 'schedule'" class="max-w-6xl mx-auto space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">排期执行</h2>
+                        <div v-if="currentBatch" class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">批次: {{ currentBatch.name }}</div>
+                    </div>
+                    <div v-if="!currentBatch" class="text-center py-12 text-gray-500">⚠️ 请先在"批次与池子"中选择批次</div>
+                    <div v-else class="space-y-4">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button @click="openScheduleConfig('leader')" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center touch-target">👑 排期队长</button>
+                            <button @click="openScheduleConfig('guard')" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center touch-target">🛡️ 排期护卫</button>
+                            <button @click="clearAllSchedule" class="sm:w-32 bg-red-100 text-red-600 py-3 rounded-lg hover:bg-red-200 transition font-medium touch-target">清空</button>
+                        </div>
+                        <div class="border rounded-lg overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr><th class="p-3 border-b text-left min-w-[100px]">日期</th><th class="p-3 border-b text-left bg-blue-50/50 min-w-[140px]">👑 队长</th><th class="p-3 border-b text-left bg-green-50/50 min-w-[140px]">🛡️ 护卫</th><th class="p-3 border-b text-left w-24">操作</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="day in batchDays" :key="day.date" class="hover:bg-gray-50 border-b last:border-b-0">
+                                            <td class="p-3"><div class="font-medium">{{ day.date }}</div><div class="text-xs text-gray-400">{{ day.week }}</div></td>
+                                            <td class="p-3 bg-blue-50/20">
+                                                <div v-if="getSchedule(day.date, 'leader')" class="flex items-center justify-between group">
+                                                    <div><span class="font-medium text-blue-700">{{ getMemberName(getSchedule(day.date, 'leader')) }}</span><span v-if="isMemberOverLimit(getSchedule(day.date, 'leader'), 'leader')" class="ml-1 text-[10px] bg-red-100 text-red-600 px-1.5 rounded">超次</span></div>
+                                                </div><div v-else class="text-gray-400 text-sm">未排</div>
+                                            </td>
+                                            <td class="p-3 bg-green-50/20">
+                                                <div v-if="getSchedule(day.date, 'guard')" class="flex items-center justify-between group">
+                                                    <div><span class="font-medium text-green-700">{{ getMemberName(getSchedule(day.date, 'guard')) }}</span><span v-if="isMemberOverLimit(getSchedule(day.date, 'guard'), 'guard')" class="ml-1 text-[10px] bg-red-100 text-red-600 px-1.5 rounded">超次</span></div>
+                                                </div><div v-else class="text-gray-400 text-sm">未排</div>
+                                            </td>
+                                            <td class="p-3 flex flex-col gap-2">
+                                                <button @click="openManualEdit(day.date, 'leader')" class="w-full bg-blue-100 text-blue-700 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-200 touch-target">改队长</button>
+                                                <button @click="openManualEdit(day.date, 'guard')" class="w-full bg-green-100 text-green-700 py-1.5 rounded-lg text-xs font-medium hover:bg-green-200 touch-target">改护卫</button>
+                                                <button @click="deleteDaySchedule(day.date)" class="w-full bg-red-100 text-red-600 py-1.5 rounded-lg text-xs font-medium hover:bg-red-200 touch-target">删当日</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日历视图 -->
+            <div v-if="currentView === 'calendar'" class="max-w-6xl mx-auto space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <button @click="changeMonth(-1)" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">◀ 上月</button>
+                        <h2 class="text-xl font-bold text-gray-800">{{ calendarDate.getFullYear() }}年 {{ calendarDate.getMonth() + 1 }}月 排期日历</h2>
+                        <button @click="changeMonth(1)" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">下月 ▶</button>
+                    </div>
+                    <div v-if="!currentBatch" class="text-center py-12 text-gray-500">⚠️ 请先在"批次与池子"中选择批次</div>
+                    <div v-else class="grid grid-cols-7 gap-1 md:gap-2">
+                        <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
+                        <div v-for="(day, idx) in calendarDays" :key="idx" 
+                             class="border rounded-lg p-1 md:p-2 min-h-[70px] md:min-h-[90px] flex flex-col relative transition hover:shadow-md"
+                             :class="[
+                                 day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
+                                 day.isToday ? 'ring-2 ring-blue-500' : ''
+                             ]">
+                            <span class="text-xs font-medium mb-1">{{ day.date }}</span>
+                            <template v-if="day.currentMonth && day.dateStr">
+                                <div v-if="getSchedule(day.dateStr, 'leader')" class="text-[10px] md:text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight">
+                                    👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}
+                                </div>
+                                <div v-else class="text-[10px] md:text-xs text-gray-300 mb-1 truncate">-</div>
+                                
+                                <div v-if="getSchedule(day.dateStr, 'guard')" class="text-[10px] md:text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight">
+                                    🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}
+                                </div>
+                                <div v-else class="text-[10px] md:text-xs text-gray-300 truncate">-</div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 统计分析 -->
+            <div v-if="currentView === 'stats'" class="max-w-6xl mx-auto space-y-6">
+                <div v-if="!currentBatch" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">请先选择批次</div>
+                <div v-else class="space-y-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="bg-white p-4 rounded-xl shadow-sm"><div class="text-xs text-gray-500">总天数</div><div class="text-2xl font-bold">{{ batchDays.length }}</div></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm"><div class="text-xs text-gray-500">队长已排</div><div class="text-2xl font-bold text-blue-600">{{ getRoleScheduledCount('leader') }}/{{ batchDays.length }}</div></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm"><div class="text-xs text-gray-500">护卫已排</div><div class="text-2xl font-bold text-green-600">{{ getRoleScheduledCount('guard') }}/{{ batchDays.length }}</div></div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm"><div class="text-xs text-gray-500">超次人数</div><div class="text-2xl font-bold text-red-600">{{ getOverLimitCount() }}</div></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <h3 class="font-bold mb-3">👑 队长统计</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50"><tr><th class="p-2 border-b">名称</th><th class="p-2 border-b">上限</th><th class="p-2 border-b">已排</th><th class="p-2 border-b">状态</th><th class="p-2 border-b">日期</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="s in getPoolStats('leader')" :key="s.id" :class="s.isOverLimit ? 'bg-red-50' : ''">
+                                        <td class="p-2 border-b">{{ s.name }}</td><td class="p-2 border-b">{{ s.maxTimes }}</td><td class="p-2 border-b font-bold" :class="s.isOverLimit ? 'text-red-600' : ''">{{ s.count }}</td>
+                                        <td class="p-2 border-b"><span v-if="s.isOverLimit" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">超次</span><span v-else-if="s.count===s.maxTimes" class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已满</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">正常</span></td>
+                                        <td class="p-2 border-b text-xs text-gray-500 truncate max-w-[200px]">{{ s.dates.join(', ') }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                        <h3 class="font-bold mb-3">🛡️ 护卫统计</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50"><tr><th class="p-2 border-b">名称</th><th class="p-2 border-b">上限</th><th class="p-2 border-b">已排</th><th class="p-2 border-b">状态</th><th class="p-2 border-b">日期</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="s in getPoolStats('guard')" :key="s.id" :class="s.isOverLimit ? 'bg-red-50' : ''">
+                                        <td class="p-2 border-b">{{ s.name }}</td><td class="p-2 border-b">{{ s.maxTimes }}</td><td class="p-2 border-b font-bold" :class="s.isOverLimit ? 'text-red-600' : ''">{{ s.count }}</td>
+                                        <td class="p-2 border-b"><span v-if="s.isOverLimit" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">超次</span><span v-else-if="s.count===s.maxTimes" class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已满</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">正常</span></td>
+                                        <td class="p-2 border-b text-xs text-gray-500 truncate max-w-[200px]">{{ s.dates.join(', ') }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 选人弹窗 -->
+        <div v-if="showMemberModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+                <div class="p-4 border-b flex justify-between items-center"><h3 class="font-bold">{{ memberModalTitle }}</h3><button @click="closeMemberModal" class="text-gray-500 text-xl">✕</button></div>
+                <div class="p-4 border-b bg-gray-50 flex flex-wrap gap-3 items-end">
+                    <div class="flex-1 min-w-[140px]"><label class="text-xs font-medium text-gray-500 block mb-1">名称</label><input v-model="memberModalFilters.name" placeholder="支持模糊" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="w-24"><label class="text-xs font-medium text-gray-500 block mb-1">最小阶级</label><input v-model.number="memberModalFilters.minClass" placeholder="如: 3" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="w-32"><label class="text-xs font-medium text-gray-500 block mb-1">最小战力</label><input v-model.number="memberModalFilters.minPower" placeholder="如: 10000" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="w-24"><button @click="resetModalFilters" class="w-full p-2 bg-gray-200 rounded text-sm hover:bg-gray-300 touch-target">重置</button></div>
+                    <div class="flex items-center gap-2 bg-white border rounded px-2 py-1">
+                        <input v-model.number="topNCount" type="number" min="1" class="w-12 p-1 border rounded text-center text-sm" placeholder="N">
+                        <button @click="selectTopN" class="px-3 py-1.5 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200 touch-target">战力前N</button>
+                    </div>
+                </div>
+                <div class="p-4 flex-1 overflow-y-auto">
+                    <button @click="selectAllFiltered" class="mb-3 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 touch-target">✅ 全选当前筛选结果</button>
+                    <div class="space-y-2">
+                        <div v-for="m in filteredMembersForModal" :key="m.id" @click="toggleMemberSelection(m.id)" class="flex items-center p-3 border rounded cursor-pointer hover:bg-gray-50 transition" :class="isMemberInPool(m.id) ? 'bg-blue-50 border-blue-300' : ''">
+                            <div class="w-5 h-5 border-2 rounded flex items-center justify-center mr-3 flex-shrink-0" :class="isMemberInPool(m.id) ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'"><span v-if="isMemberInPool(m.id)" class="text-xs">✓</span></div>
+                            <div class="flex-1 min-w-0"><div class="font-medium truncate">{{ m.name }}</div><div class="text-xs text-gray-400">战力: {{ m.power }} | 阶级: {{ m.class }}</div></div>
+                            <div v-if="isMemberInPool(m.id)" class="flex items-center space-x-1 ml-2 flex-shrink-0" @click.stop><span class="text-xs text-gray-500">次:</span><input v-model.number="getCurrentPoolMember(m.id).maxTimes" type="number" min="1" class="w-12 p-1 border rounded text-center text-sm"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t flex justify-between items-center bg-gray-50 rounded-b-xl">
+                    <span class="text-sm text-gray-600">已选 {{ currentPoolMembers.length }} 人</span>
+                    <div class="space-x-3"><button @click="closeMemberModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 touch-target">取消</button><button @click="confirmMemberSelection" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 touch-target">确认</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 排期配置弹窗 -->
+        <div v-if="showScheduleConfigModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+                <div class="p-4 border-b"><h3 class="font-bold">排期配置 - {{ scheduleConfigRole === 'leader' ? '👑' : '🛡️' }}</h3></div>
+                <div class="p-6 overflow-y-auto flex-1 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-xs text-gray-500 block mb-1">开始日期</label><input v-model="scheduleConfig.startDate" type="date" class="w-full p-2 border rounded"></div>
+                        <div><label class="text-xs text-gray-500 block mb-1">结束日期</label><input v-model="scheduleConfig.endDate" type="date" class="w-full p-2 border rounded"></div>
+                    </div>
+                    <button @click="resetScheduleDateRange" class="text-xs text-blue-500 hover:underline">重置为批次范围</button>
+                    <div><label class="text-xs text-gray-500 block mb-1">排序规则</label>
+                        <select v-model="scheduleConfig.sortBy" class="w-full p-2 border rounded mt-1">
+                            <option value="power_desc">战力降序</option><option value="power_asc">战力升序</option>
+                            <option value="class_desc">阶级降序</option><option value="class_asc">阶级升序</option>
+                            <option value="furnace_desc">火炉降序</option><option value="furnace_asc">火炉升序</option>
+                            <option value="weekMerit_desc">周功勋降序</option><option value="weekMerit_asc">周功勋升序</option>
+                            <option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option>
+                            <option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option>
+                            <option value="random">随机</option>
+                        </select>
+                    </div>
+                    <div v-if="schedulePreview.length" class="border rounded p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                        <div v-for="(item, idx) in schedulePreview" :key="idx" class="flex justify-between text-sm py-1 border-b last:border-0"><span class="text-gray-600">{{ item.date }}</span><span class="font-medium">{{ item.memberName }}</span></div>
+                    </div>
+                </div>
+                <div class="p-4 border-t flex justify-end gap-3 bg-gray-50 rounded-b-xl">
+                    <button @click="closeScheduleConfigModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 touch-target">取消</button>
+                    <button @click="previewSchedule" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 touch-target">预览</button>
+                    <button @click="confirmSchedule" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 touch-target">确认排期</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 手动修改弹窗 -->
+        <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="font-bold mb-4">修改: {{ editModalDate }} ({{ editModalRole === 'leader' ? '队长' : '护卫' }})</h3>
+                <select v-model="editModalValue" class="w-full p-3 border rounded mb-4 max-h-60 overflow-y-auto">
+                    <option :value="null">-- 清空 --</option>
+                    <option v-for="m in editModalPoolMembers" :key="m.id" :value="m.id">
+                        {{ getMemberName(m.id) }} 
+                        <span v-if="isMemberOverLimit(m.id, editModalRole)" class="text-red-500 font-bold">(⚠️ 已超上限 {{ getMemberLimit(m.id, editModalRole) }})</span>
+                        <span v-else class="text-gray-400">(剩余: {{ getMemberRemainingTimes(m.id, editModalRole) }})</span>
+                    </option>
+                </select>
+                <div class="flex justify-end space-x-3">
+                    <button @click="showEditModal = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">取消</button>
+                    <button @click="confirmManualEdit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 touch-target">保存</button>
+                </div>
+             </div>
+        </div>
+
+        <!-- 新增人员弹窗 -->
+        <div v-if="showAddPersonModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="font-bold text-lg mb-4">➕ 新增人员</h3>
+                <div class="space-y-3">
+                    <div><label class="text-sm font-medium text-gray-700">名称 <span class="text-red-500">*</span></label><input v-model="newPerson.name" class="w-full p-2 border rounded mt-1" placeholder="必填"></div>
+                    <div><label class="text-sm font-medium text-gray-700">阶级 <span class="text-red-500">*</span></label><input v-model.number="newPerson.class" type="number" class="w-full p-2 border rounded mt-1" placeholder="必填"></div>
+                    <div><label class="text-sm font-medium text-gray-700">火炉等级</label><input v-model.number="newPerson.furnace" type="number" class="w-full p-2 border rounded mt-1"></div>
+                    <div><label class="text-sm font-medium text-gray-700">战力</label><input v-model.number="newPerson.power" type="number" class="w-full p-2 border rounded mt-1"></div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div><label class="text-xs text-gray-500">周功勋</label><input v-model.number="newPerson.weekMerit" type="number" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="text-xs text-gray-500">总功勋</label><input v-model.number="newPerson.totalMerit" type="number" class="w-full p-2 border rounded mt-1"></div>
+                        <div><label class="text-xs text-gray-500">周捐献</label><input v-model.number="newPerson.weekDonation" type="number" class="w-full p-2 border rounded mt-1"></div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button @click="showAddPersonModal = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">取消</button>
+                    <button @click="confirmAddPerson" class="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 touch-target">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 云端同步弹窗 -->
+        <div v-if="showCloudConfig" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+                <h3 class="font-bold text-lg mb-2">☁️ GitHub Gist 云端同步</h3>
+                <p class="text-sm text-gray-500 mb-4">通过 GitHub Gist 实现多设备/多人数据同步。</p>
+                <div class="space-y-3">
+                    <div><label class="text-sm font-medium text-gray-700">GitHub Token</label><input v-model="cloud.token" type="password" class="w-full p-2 border rounded mt-1" placeholder="ghp_xxxxxxxxxxxx"><p class="text-xs text-gray-400 mt-1">需勾选 <code>gist</code> 权限。</p></div>
+                    <div><label class="text-sm font-medium text-gray-700">Gist ID</label><input v-model="cloud.gistId" class="w-full p-2 border rounded mt-1" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
+                    <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
+                </div>
+                <div class="mt-6 flex justify-between items-center">
+                    <button @click="showCloudConfig = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">关闭</button>
+                    <div class="flex gap-2">
+                        <button @click="saveCloudConfig" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 touch-target">💾 保存配置</button>
+                        <button @click="syncFromCloud" :disabled="cloud.loading" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 touch-target disabled:opacity-50">⬇️ 下载</button>
+                        <button @click="syncToCloud" :disabled="cloud.loading" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 touch-target disabled:opacity-50">⬆️ 上传</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+        createApp({
+            setup() {
+                const currentView = ref('members');
+                const mobileMenuOpen = ref(false);
+                const importText = ref('');
+                const parsedData = ref([]);
+                const members = ref([]);
+                const batches = ref([]);
+                const currentBatchId = ref(null);
+                const memberFilters = ref({ name: '', minClass: 0, minPower: 0, sortBy: 'power_desc' });
+                
+                const showMemberModal = ref(false);
+                const memberModalTitle = ref('');
+                const memberModalFilters = ref({ name: '', minClass: 0, minPower: 0 });
+                const memberModalTargetBatch = ref(null);
+                const memberModalTargetRole = ref('');
+                const topNCount = ref(5);
+
+                const showScheduleConfigModal = ref(false);
+                const scheduleConfigRole = ref('');
+                const scheduleConfig = ref({ startDate: '', endDate: '', sortBy: 'power_desc' });
+                const schedulePreview = ref([]);
+
+                const showEditModal = ref(false);
+                const editModalDate = ref('');
+                const editModalRole = ref('');
+                const editModalValue = ref(null);
+                const showCloudConfig = ref(false);
+                const showAddPersonModal = ref(false);
+                const newPerson = ref({ name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0 });
+                const newBatch = ref({ name: '', start: '', end: '' });
+                const cloud = ref({ token: '', gistId: '', syncStatus: '', loading: false });
+                const calendarDate = ref(new Date());
+
+                const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                const getLocalDateString = (dateStr) => { const [y, m, d] = dateStr.split('-').map(Number); return new Date(y, m-1, d); };
+
+                const initCurrentMonthDates = () => {
+                    const now = new Date();
+                    newBatch.value.start = fmtDate(new Date(now.getFullYear(), now.getMonth(), 1));
+                    newBatch.value.end = fmtDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+                    newBatch.value.name = `${now.getFullYear()}年${now.getMonth() + 1}月排期`;
+                };
+
+                const existingMemberIds = computed(() => members.value.map(m => m.id));
+                const currentBatch = computed(() => batches.value.find(b => b.id === currentBatchId.value));
+                const batchDays = computed(() => {
+                    if (!currentBatch.value) return [];
+                    const days = []; let curr = getLocalDateString(currentBatch.value.start); const end = getLocalDateString(currentBatch.value.end);
+                    const weekMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                    while (curr <= end) { days.push({ date: fmtDate(curr), week: weekMap[curr.getDay()] }); curr.setDate(curr.getDate() + 1); }
+                    return days;
+                });
+                
+                const calendarDays = computed(() => {
+                    const y = calendarDate.value.getFullYear();
+                    const m = calendarDate.value.getMonth();
+                    const firstDay = new Date(y, m, 1);
+                    const lastDay = new Date(y, m + 1, 0);
+                    const startWeekday = firstDay.getDay();
+                    const daysInMonth = lastDay.getDate();
+                    const days = [];
+                    const prevMonthLastDay = new Date(y, m, 0).getDate();
+                    
+                    for (let i = startWeekday - 1; i >= 0; i--) {
+                        days.push({ date: prevMonthLastDay - i, currentMonth: false, dateStr: null, isToday: false });
+                    }
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        const dateStr = fmtDate(new Date(y, m, i));
+                        days.push({
+                            date: i,
+                            dateStr,
+                            currentMonth: true,
+                            isToday: new Date().toDateString() === new Date(y, m, i).toDateString()
+                        });
+                    }
+                    const remaining = 42 - days.length;
+                    for (let i = 1; i <= remaining; i++) {
+                        days.push({ date: i, currentMonth: false, dateStr: null, isToday: false });
+                    }
+                    return days;
+                });
+
+                const filteredMembers = computed(() => {
+                    let res = [...members.value];
+                    if (memberFilters.value.name) res = res.filter(m => m.name.includes(memberFilters.value.name));
+                    if (memberFilters.value.minClass) res = res.filter(m => m.class >= memberFilters.value.minClass);
+                    if (memberFilters.value.minPower) res = res.filter(m => m.power >= memberFilters.value.minPower);
+                    const [field, order] = memberFilters.value.sortBy.split('_');
+                    res.sort((a, b) => order === 'desc' ? (b[field]||0) - (a[field]||0) : (a[field]||0) - (b[field]||0));
+                    return res;
+                });
+                const filteredMembersForModal = computed(() => {
+                    let res = members.value;
+                    if (memberModalFilters.value.name) res = res.filter(m => m.name.includes(memberModalFilters.value.name));
+                    if (memberModalFilters.value.minClass) res = res.filter(m => m.class >= memberModalFilters.value.minClass);
+                    if (memberModalFilters.value.minPower) res = res.filter(m => m.power >= memberModalFilters.value.minPower);
+                    return res;
+                });
+                const currentPoolMembers = computed(() => {
+                    if (!memberModalTargetBatch.value || !showMemberModal.value) return [];
+                    const pool = memberModalTargetRole.value === 'leader' ? memberModalTargetBatch.value.leaderPool : memberModalTargetBatch.value.guardPool;
+                    return pool.members;
+                });
+                const editModalPoolMembers = computed(() => {
+                    if (!currentBatch.value || !editModalRole.value) return [];
+                    const pool = editModalRole.value === 'leader' ? currentBatch.value.leaderPool : currentBatch.value.guardPool;
+                    return pool.members || [];
+                });
+
+                // 修复日历切换与批次联动
+                const changeMonth = (offset) => {
+                    calendarDate.value = new Date(calendarDate.value.getFullYear(), calendarDate.value.getMonth() + offset, 1);
+                };
+                watch(currentBatchId, (newId) => {
+                    const batch = batches.value.find(b => b.id === newId);
+                    if (batch) {
+                        const [y, m] = batch.start.split('-').map(Number);
+                        calendarDate.value = new Date(y, m - 1, 1);
+                    }
+                });
+
+                const parseImport = () => {
+                    const lines = importText.value.trim().split('\n');
+                    if (lines.length < 2) return alert('数据不足');
+                    if (!lines[0].includes('名称')) return alert('未识别表头');
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const p = lines[i].trim().split(/\s+/);
+                        if (p.length < 4) continue;
+                        const furnaceMatch = (p[3]||'').match(/(\d+)/);
+                        data.push({ id: p[1], name: p[1], class: parseInt(p[2])||0, furnace: furnaceMatch?parseInt(furnaceMatch[1]):0, power: parseInt(p[4])||0, weekMerit: parseInt(p[5])||0, totalMerit: parseInt(p[6])||0, weekDonation: parseInt(p[7])||0 });
+                    }
+                    parsedData.value = data;
+                };
+                const confirmImport = () => {
+                    parsedData.value.forEach(p => {
+                        const idx = members.value.findIndex(m => m.id === p.id);
+                        idx >= 0 ? (members.value[idx] = p) : members.value.push(p);
+                    });
+                    parsedData.value = []; importText.value = ''; saveData(); alert('导入成功');
+                };
+                const deleteMember = (id) => { if(confirm('确定移除？不影响历史排期。')) { members.value = members.value.filter(m => m.id !== id); saveData(); } };
+                const clearAllMembers = () => { if(confirm('清空所有人员？')) { members.value = []; saveData(); } };
+                const resetMemberFilters = () => { memberFilters.value = { name: '', minClass: 0, minPower: 0, sortBy: 'power_desc' }; };
+
+                const openAddPersonModal = () => { newPerson.value = { name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0 }; showAddPersonModal.value = true; };
+                const confirmAddPerson = () => {
+                    if (!newPerson.value.name || !newPerson.value.class) return alert('名称和阶级为必填项');
+                    const id = newPerson.value.name.trim();
+                    const idx = members.value.findIndex(m => m.id === id);
+                    const data = { ...newPerson.value, id };
+                    if (idx >= 0) members.value[idx] = data; else members.value.push(data);
+                    showAddPersonModal.value = false; saveData(); alert('保存成功');
+                };
+
+                const createBatch = () => {
+                    if (!newBatch.value.name || !newBatch.value.start || !newBatch.value.end) return alert('请填写完整');
+                    batches.value.push({ id: Date.now().toString(), name: newBatch.value.name, start: newBatch.value.start, end: newBatch.value.end, leaderPool: { members: [] }, guardPool: { members: [] }, schedule: {} });
+                    currentBatchId.value = batches.value[batches.value.length-1].id;
+                    initCurrentMonthDates(); saveData();
+                };
+                const deleteBatch = (id) => { if(confirm('删除批次？')) { batches.value = batches.value.filter(b => b.id !== id); if(currentBatchId.value===id) currentBatchId.value=null; saveData(); } };
+                const getBatchDaysCount = (b) => Math.floor((getLocalDateString(b.end) - getLocalDateString(b.start)) / 86400000) + 1;
+
+                const openMemberSelector = (batch, role) => {
+                    memberModalTargetBatch.value = batch; memberModalTargetRole.value = role;
+                    memberModalTitle.value = role === 'leader' ? '选择队长池' : '选择护卫池';
+                    memberModalFilters.value = { name: '', minClass: 0, minPower: 0 }; topNCount.value = 5;
+                    showMemberModal.value = true;
+                };
+                const closeMemberModal = () => { showMemberModal.value = false; memberModalTargetBatch.value = null; };
+                const resetModalFilters = () => { memberModalFilters.value = { name: '', minClass: 0, minPower: 0 }; };
+                const isMemberInPool = (id) => currentPoolMembers.value.some(m => m.id === id);
+                const getCurrentPoolMember = (id) => currentPoolMembers.value.find(m => m.id === id);
+                const toggleMemberSelection = (id) => {
+                    const pool = memberModalTargetRole.value === 'leader' ? memberModalTargetBatch.value.leaderPool : memberModalTargetBatch.value.guardPool;
+                    const idx = pool.members.findIndex(m => m.id === id);
+                    idx >= 0 ? pool.members.splice(idx, 1) : pool.members.push({ id, maxTimes: 1 });
+                };
+                const selectAllFiltered = () => {
+                    const pool = memberModalTargetRole.value === 'leader' ? memberModalTargetBatch.value.leaderPool : memberModalTargetBatch.value.guardPool;
+                    filteredMembersForModal.value.forEach(m => { if(!pool.members.find(p=>p.id===m.id)) pool.members.push({id:m.id, maxTimes:1}); });
+                };
+                const selectTopN = () => {
+                    const pool = memberModalTargetRole.value === 'leader' ? memberModalTargetBatch.value.leaderPool : memberModalTargetBatch.value.guardPool;
+                    const sorted = [...filteredMembersForModal.value].sort((a,b) => b.power - a.power).slice(0, topNCount.value);
+                    sorted.forEach(m => { if(!pool.members.find(p=>p.id===m.id)) pool.members.push({id:m.id, maxTimes:1}); });
+                };
+                const confirmMemberSelection = () => { saveData(); closeMemberModal(); };
+
+                const openScheduleConfig = (role) => {
+                    scheduleConfigRole.value = role;
+                    scheduleConfig.value = { startDate: currentBatch.value.start, endDate: currentBatch.value.end, sortBy: 'power_desc' };
+                    schedulePreview.value = []; showScheduleConfigModal.value = true;
+                };
+                const closeScheduleConfigModal = () => { showScheduleConfigModal.value = false; };
+                const resetScheduleDateRange = () => { scheduleConfig.value.startDate = currentBatch.value.start; scheduleConfig.value.endDate = currentBatch.value.end; };
+                
+                const previewSchedule = () => {
+                    const role = scheduleConfigRole.value;
+                    const batch = currentBatch.value;
+                    const pool = role === 'leader' ? batch.leaderPool : batch.guardPool;
+                    if(!pool.members.length) return alert('池子为空');
+                    const days = []; let curr = getLocalDateString(scheduleConfig.value.startDate); const end = getLocalDateString(scheduleConfig.value.endDate);
+                    while(curr <= end) { const ds = fmtDate(curr); if(!batch.schedule[ds] || !batch.schedule[ds][role]) days.push({ date: ds }); curr.setDate(curr.getDate()+1); }
+                    if(!days.length) return alert('无未排期日期');
+                    const membersWithCount = pool.members.map(pm => {
+                        const m = members.value.find(x => x.id === pm.id); if(!m) return null;
+                        let c = 0; Object.values(batch.schedule).forEach(s => { if(s[role]===pm.id) c++; });
+                        return { ...m, maxTimes: pm.maxTimes, remaining: pm.maxTimes - c };
+                    }).filter(Boolean).filter(m => m.remaining > 0);
+                    if(!membersWithCount.length) return alert('成员次数已用完');
+                    if(scheduleConfig.value.sortBy !== 'random') {
+                        const [f, o] = scheduleConfig.value.sortBy.split('_');
+                        membersWithCount.sort((a,b) => o==='desc' ? (b[f]||0)-(a[f]||0) : (a[f]||0)-(b[f]||0));
+                    } else { membersWithCount.sort(() => Math.random()-0.5); }
+                    const preview = []; let idx = 0;
+                    days.forEach(d => {
+                        const cand = membersWithCount[idx % membersWithCount.length];
+                        if(cand) { preview.push({ date: d.date, memberName: cand.name }); cand.remaining--; if(cand.remaining <= 0) membersWithCount.splice(idx % membersWithCount.length, 1); }
+                    });
+                    schedulePreview.value = preview;
+                };
+                const confirmSchedule = () => {
+                    if(!schedulePreview.value.length) return alert('请先预览');
+                    const role = scheduleConfigRole.value;
+                    schedulePreview.value.forEach(item => {
+                        if(!currentBatch.value.schedule[item.date]) currentBatch.value.schedule[item.date] = {};
+                        currentBatch.value.schedule[item.date][role] = members.value.find(m=>m.name===item.memberName)?.id;
+                    });
+                    saveData(); closeScheduleConfigModal(); alert(`已安排 ${schedulePreview.value.length} 天`); schedulePreview.value = [];
+                };
+
+                const getSchedule = (date, role) => currentBatch.value?.schedule[date]?.[role] || null;
+                const getMemberName = (id) => members.value.find(m => m.id === id)?.name || '未知';
+                const getMemberLimit = (mid, role) => {
+                    const pool = role==='leader'?currentBatch.value.leaderPool:currentBatch.value.guardPool;
+                    return pool.members.find(m=>m.id===mid)?.maxTimes || 0;
+                };
+                const getMemberRemainingTimes = (mid, role) => {
+                    const pool = role==='leader'?currentBatch.value.leaderPool:currentBatch.value.guardPool;
+                    const pm = pool.members.find(m=>m.id===mid); if(!pm) return 0;
+                    let c=0; Object.values(currentBatch.value.schedule).forEach(s=>{if(s[role]===mid)c++;});
+                    return pm.maxTimes - c;
+                };
+                const isMemberOverLimit = (mid, role) => {
+                    if(!mid||!currentBatch.value) return false;
+                    const pool = role==='leader'?currentBatch.value.leaderPool:currentBatch.value.guardPool;
+                    const pm = pool.members.find(m=>m.id===mid); if(!pm) return false;
+                    let c=0; Object.values(currentBatch.value.schedule).forEach(s=>{if(s[role]===mid)c++;});
+                    return c > pm.maxTimes;
+                };
+                const openManualEdit = (date, role) => { editModalDate.value=date; editModalRole.value=role; editModalValue.value=getSchedule(date, role); showEditModal.value=true; };
+                const confirmManualEdit = () => {
+                    if(currentBatch.value) {
+                        if(!currentBatch.value.schedule[editModalDate.value]) currentBatch.value.schedule[editModalDate.value]={};
+                        currentBatch.value.schedule[editModalDate.value][editModalRole.value]=editModalValue.value;
+                        saveData(); showEditModal.value=false;
+                    }
+                };
+                const deleteDaySchedule = (date) => { if(confirm(`删除 ${date} 排期？`)) { delete currentBatch.value.schedule[date]; saveData(); } };
+                const clearAllSchedule = () => { if(confirm('清空所有排期？')) { currentBatch.value.schedule={}; saveData(); } };
+
+                const getRoleScheduledCount = (role) => Object.values(currentBatch.value?.schedule||{}).filter(s=>s[role]).length;
+                const getOverLimitCount = () => {
+                    let c=0; ['leader','guard'].forEach(role=>{ const pool = role==='leader'?currentBatch.value.leaderPool:currentBatch.value.guardPool; pool.members.forEach(pm=>{ if(isMemberOverLimit(pm.id, role)) c++; }); }); return c;
+                };
+                const getPoolStats = (role) => {
+                    const pool = role==='leader'?currentBatch.value.leaderPool:currentBatch.value.guardPool;
+                    return pool.members.map(pm=>{
+                        const m=members.value.find(x=>x.id===pm.id); if(!m) return null;
+                        let c=0; const dates=[];
+                        Object.entries(currentBatch.value.schedule).forEach(([d,s])=>{ if(s[role]===pm.id){c++; dates.push(d);} });
+                        return { id:pm.id, name:m.name, maxTimes:pm.maxTimes, count:c, remaining:pm.maxTimes-c, isOverLimit:c>pm.maxTimes, dates };
+                    }).filter(Boolean);
+                };
+
+                const saveData = () => localStorage.setItem('caravan_v2', JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, cloud: {token: cloud.value.token, gistId: cloud.value.gistId}}));
+                const loadData = () => {
+                    const r = localStorage.getItem('caravan_v2');
+                    if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||'';} }catch(e){} }
+                };
+                const downloadJSON = () => {
+                    const blob = new Blob([JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, exportTime:new Date().toISOString()}, null, 2)], {type:'application/json'});
+                    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`caravan_${fmtDate(new Date())}.json`; a.click();
+                };
+                const uploadJSON = (e) => {
+                    const f=e.target.files[0]; if(!f) return;
+                    const r=new FileReader(); r.onload=ev=>{ try{const d=JSON.parse(ev.target.result); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; saveData(); alert('导入成功');}catch(err){alert('格式错误');} }; r.readAsText(f);
+                };
+
+                const saveCloudConfig = () => { saveData(); cloud.value.syncStatus = '配置已保存'; setTimeout(()=>cloud.value.syncStatus='', 2000); };
+                const syncFromCloud = async () => {
+                    if(!cloud.value.token || !cloud.value.gistId) return cloud.value.syncStatus = '请先配置 Token 和 Gist ID';
+                    cloud.value.loading = true; cloud.value.syncStatus = '下载中...';
+                    try {
+                        const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                        if(!res.ok) throw new Error('请求失败');
+                        const data = await res.json();
+                        const content = JSON.parse(data.files['caravan_data.json']?.content || '{}');
+                        members.value = content.members || []; batches.value = content.batches || []; currentBatchId.value = content.currentBatchId; memberFilters.value = content.memberFilters || memberFilters.value;
+                        saveData(); cloud.value.syncStatus = '✅ 下载成功，数据已覆盖';
+                    } catch(e) { cloud.value.syncStatus = `❌ 下载失败: ${e.message}`; }
+                    finally { cloud.value.loading = false; }
+                };
+                const syncToCloud = async () => {
+                    if(!cloud.value.token || !cloud.value.gistId) return cloud.value.syncStatus = '请先配置 Token 和 Gist ID';
+                    cloud.value.loading = true; cloud.value.syncStatus = '上传中...';
+                    const payload = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value, exportTime: new Date().toISOString() };
+                    try {
+                        const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, {
+                            method: 'PATCH',
+                            headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ files: { 'caravan_data.json': { content: JSON.stringify(payload) } } })
+                        });
+                        if(!res.ok) throw new Error('上传失败');
+                        cloud.value.syncStatus = '✅ 上传成功';
+                    } catch(e) { cloud.value.syncStatus = `❌ 上传失败: ${e.message}`; }
+                    finally { cloud.value.loading = false; }
+                };
+
+                onMounted(() => { initCurrentMonthDates(); loadData(); });
+                return {
+                    currentView, mobileMenuOpen, importText, parsedData, members, batches, currentBatchId, currentBatch, batchDays,
+                    memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth,
+                    showMemberModal, memberModalTitle, memberModalFilters, filteredMembersForModal, currentPoolMembers, topNCount, editModalPoolMembers,
+                    showScheduleConfigModal, scheduleConfigRole, scheduleConfig, schedulePreview,
+                    showEditModal, editModalDate, editModalRole, editModalValue, showCloudConfig, showAddPersonModal, newPerson, newBatch, cloud,
+                    
+                    parseImport, confirmImport, deleteMember, clearAllMembers, resetMemberFilters, openAddPersonModal, confirmAddPerson,
+                    createBatch, deleteBatch, getBatchDaysCount,
+                    openMemberSelector, closeMemberModal, resetModalFilters, isMemberInPool, getCurrentPoolMember, toggleMemberSelection, selectAllFiltered, selectTopN, confirmMemberSelection,
+                    openScheduleConfig, closeScheduleConfigModal, resetScheduleDateRange, previewSchedule, confirmSchedule,
+                    getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, isMemberOverLimit, openManualEdit, confirmManualEdit, deleteDaySchedule, clearAllSchedule,
+                    getRoleScheduledCount, getOverLimitCount, getPoolStats,
+                    downloadJSON, uploadJSON, saveCloudConfig, syncFromCloud, syncToCloud
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
