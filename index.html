@@ -38,7 +38,7 @@
         <aside :class="['bg-white shadow-lg flex flex-col z-40 transition-transform duration-300 fixed md:relative inset-y-0 left-0 w-64', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']">
             <div class="p-6 border-b border-gray-100 hidden md:block">
                 <h1 class="text-xl font-bold text-gray-800"><i class="fas fa-truck-fast text-blue-600 mr-2"></i>商队排期系统</h1>
-                <p class="text-xs text-gray-400 mt-1">v2.6.0</p>
+                <p class="text-xs text-gray-400 mt-1">v3.0.0</p>
             </div>
             <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded"><i class="fas fa-times"></i></button>
             <nav class="flex-1 p-3 space-y-1 mt-14 md:mt-0">
@@ -517,22 +517,77 @@
 
         <!-- 云端同步弹窗 -->
         <div v-if="showCloudConfig" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-                <h3 class="font-bold text-lg mb-2">☁️ GitHub Gist 云端同步</h3>
-                <p class="text-sm text-gray-500 mb-4">通过 GitHub Gist 实现多设备/多人数据同步。</p>
-                <div class="space-y-3">
-                    <div><label class="text-sm font-medium text-gray-700">GitHub Token</label><input v-model="cloud.token" type="password" class="w-full p-2 border rounded mt-1" placeholder="ghp_xxxxxxxxxxxx"><p class="text-xs text-gray-400 mt-1">需勾选 <code>gist</code> 权限。</p></div>
-                    <div><label class="text-sm font-medium text-gray-700">Gist ID</label><input v-model="cloud.gistId" class="w-full p-2 border rounded mt-1" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
-                    <div><label class="text-sm font-medium text-gray-700">上传人</label><input v-model="cloud.uploaderName" class="w-full p-2 border rounded mt-1" placeholder="请输入您的姓名"><p class="text-xs text-gray-400 mt-1">首次上传时必须填写，后续会自动带出。</p></div>
-                    <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm mt-3', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
-                    <div v-if="cloud.lastSyncTime" class="text-xs text-gray-500 mt-2">上次同步: {{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div class="p-6 border-b">
+                    <h3 class="font-bold text-lg mb-1"><i class="fas fa-cloud-arrow-up text-blue-600 mr-2"></i>GitHub Gist 云端同步</h3>
+                    <p class="text-sm text-gray-500">通过 GitHub Gist 实现多设备/多人数据同步，支持5个版本管理。</p>
                 </div>
-                <div class="mt-6 flex justify-between items-center">
-                    <button @click="showCloudConfig = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">关闭</button>
-                    <div class="flex gap-2">
-                        <button @click="saveCloudConfig" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 touch-target">💾 保存配置</button>
-                        <button @click="syncFromCloud" :disabled="cloud.loading" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 touch-target disabled:opacity-50">⬇️ 下载</button>
-                        <button @click="syncToCloud" :disabled="cloud.loading" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 touch-target disabled:opacity-50">⬆️ 上传</button>
+                
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <!-- 配置区域 -->
+                    <div class="space-y-3">
+                        <div><label class="text-sm font-medium text-gray-700">GitHub Token</label><input v-model="cloud.token" type="password" class="w-full p-2 border rounded mt-1" placeholder="ghp_xxxxxxxxxxxx"><p class="text-xs text-gray-400 mt-1">需勾选 <code>gist</code> 权限。</p></div>
+                        <div><label class="text-sm font-medium text-gray-700">Gist ID</label><input v-model="cloud.gistId" class="w-full p-2 border rounded mt-1" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-sm font-medium text-gray-700">上传人姓名</label><input v-model="cloud.uploaderName" class="w-full p-2 border rounded mt-1" placeholder="您的姓名"><p class="text-xs text-gray-400 mt-1">仅供参考</p></div>
+                            <div><label class="text-sm font-medium text-gray-700">用户ID</label><input :value="cloud.uploaderId" readonly class="w-full p-2 border rounded mt-1 bg-gray-50 text-gray-500 text-xs" placeholder="自动生成"><p class="text-xs text-gray-400 mt-1">唯一标识</p></div>
+                        </div>
+                        <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm mt-3', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
+                        <div v-if="cloud.lastSyncTime" class="text-xs text-gray-500 mt-2">上次同步: {{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
+                    </div>
+                    
+                    <!-- 版本列表 -->
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-sm text-gray-700"><i class="fas fa-clock-rotate-left mr-1"></i>云端版本 (最多5个)</h4>
+                            <button @click="updateVersionsList" :disabled="cloud.loading" class="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50">
+                                <i class="fas fa-rotate-right mr-1"></i>刷新
+                            </button>
+                        </div>
+                        
+                        <div v-if="cloud.versions.length === 0" class="text-center py-6 text-gray-400 text-sm">
+                            <i class="fas fa-inbox text-3xl mb-2"></i>
+                            <p>暂无云端版本</p>
+                        </div>
+                        
+                        <div v-else class="space-y-2 max-h-64 overflow-y-auto">
+                            <div v-for="version in cloud.versions" :key="version.index" 
+                                 class="p-3 border rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                                 @click="syncFromVersion(version.index)">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">版本 {{ version.index + 1 }}</span>
+                                        <span v-if="version.index === 0" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">最新</span>
+                                    </div>
+                                    <span class="text-xs text-gray-400">{{ new Date(version.timestamp).toLocaleString('zh-CN') }}</span>
+                                </div>
+                                <div class="text-xs text-gray-600 space-y-1">
+                                    <div><i class="fas fa-user mr-1"></i>{{ version.uploaderName }} <span class="text-gray-400">({{ version.uploaderId.substr(0, 12) }}...)</span></div>
+                                    <div class="flex gap-3">
+                                        <span><i class="fas fa-users mr-1"></i>{{ version.memberCount }} 成员</span>
+                                        <span><i class="fas fa-layer-group mr-1"></i>{{ version.batchCount }} 批次</span>
+                                    </div>
+                                    <div class="text-gray-400">{{ version.version }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t bg-gray-50 rounded-b-xl">
+                    <div class="flex justify-between items-center">
+                        <button @click="showCloudConfig = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">关闭</button>
+                        <div class="flex gap-2">
+                            <button @click="saveCloudConfig" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 touch-target">
+                                <i class="fas fa-floppy-disk mr-1"></i>保存配置
+                            </button>
+                            <button @click="syncFromCloud" :disabled="cloud.loading" class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded hover:from-green-600 hover:to-emerald-700 touch-target disabled:opacity-50 shadow-sm">
+                                <i class="fas fa-download mr-1"></i>下载最新
+                            </button>
+                            <button @click="syncToCloud" :disabled="cloud.loading" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded hover:from-blue-600 hover:to-indigo-700 touch-target disabled:opacity-50 shadow-sm">
+                                <i class="fas fa-upload mr-1"></i>上传新版本
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -614,7 +669,16 @@
                 const showAddPersonModal = ref(false);
                 const newPerson = ref({ name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0 });
                 const newBatch = ref({ name: '', start: '', end: '' });
-                const cloud = ref({ token: '', gistId: '', syncStatus: '', loading: false, lastSyncTime: null, uploaderName: '' });
+                const cloud = ref({ 
+                    token: '', 
+                    gistId: '', 
+                    syncStatus: '', 
+                    loading: false, 
+                    lastSyncTime: null, 
+                    uploaderName: '',
+                    uploaderId: '', // 用户唯一ID
+                    versions: [] // 版本列表
+                });
                 const calendarDate = ref(new Date());
                 const showCalendarDayModal = ref(false);
                 const selectedCalendarDay = ref('');
@@ -708,6 +772,79 @@
 
                 const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                 const getLocalDateString = (dateStr) => { const [y, m, d] = dateStr.split('-').map(Number); return new Date(y, m-1, d); };
+                
+                // 生成用户唯一ID
+                const generateUserId = () => {
+                    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                };
+                
+                // 初始化用户ID
+                if (!cloud.value.uploaderId) {
+                    cloud.value.uploaderId = generateUserId();
+                }
+                
+                // 初始化版本列表
+                if (!cloud.value.versions || !Array.isArray(cloud.value.versions)) {
+                    cloud.value.versions = [];
+                }
+                
+                // 获取版本文件名
+                const getVersionFileName = (versionIndex) => {
+                    return `caravan_data_v${versionIndex}.json`;
+                };
+                
+                // 获取当前时间戳字符串
+                const getCurrentTimestamp = () => {
+                    return new Date().toISOString();
+                };
+                
+                // 更新版本列表
+                const updateVersionsList = async () => {
+                    if(!cloud.value.token || !cloud.value.gistId) return [];
+                    
+                    try {
+                        const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { 
+                            headers: { 
+                                'Authorization': `token ${cloud.value.token}`, 
+                                'Accept': 'application/vnd.github.v3+json' 
+                            } 
+                        });
+                        if(!res.ok) return [];
+                        
+                        const data = await res.json();
+                        const versions = [];
+                        
+                        // 查找所有版本文件
+                        for (let i = 0; i < 5; i++) {
+                            const fileName = getVersionFileName(i);
+                            if (data.files[fileName]) {
+                                try {
+                                    const content = JSON.parse(data.files[fileName].content);
+                                    versions.push({
+                                        index: i,
+                                        fileName: fileName,
+                                        timestamp: content.exportTime || '',
+                                        uploaderName: content.uploaderName || '未知',
+                                        uploaderId: content.uploaderId || '',
+                                        version: content.version || '',
+                                        memberCount: (content.members || []).length,
+                                        batchCount: (content.batches || []).length
+                                    });
+                                } catch (e) {
+                                    console.error(`解析版本文件 ${fileName} 失败:`, e);
+                                }
+                            }
+                        }
+                        
+                        // 按时间戳排序，最新的在前面
+                        versions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        cloud.value.versions = versions;
+                        return versions;
+                    } catch (e) {
+                        console.error('获取版本列表失败:', e);
+                        return [];
+                    }
+                };
 
                 const initCurrentMonthDates = () => {
                     const now = new Date();
@@ -987,10 +1124,10 @@
                     }).filter(Boolean);
                 };
 
-                const saveData = () => localStorage.setItem('caravan_v2', JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, cloud: {token: cloud.value.token, gistId: cloud.value.gistId, lastSyncTime: cloud.value.lastSyncTime, uploaderName: cloud.value.uploaderName}}));
+                const saveData = () => localStorage.setItem('caravan_v2', JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, cloud: {token: cloud.value.token, gistId: cloud.value.gistId, lastSyncTime: cloud.value.lastSyncTime, uploaderName: cloud.value.uploaderName, uploaderId: cloud.value.uploaderId}}));
                 const loadData = () => {
                     const r = localStorage.getItem('caravan_v2');
-                    if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||''; cloud.value.lastSyncTime=d.cloud.lastSyncTime||null; cloud.value.uploaderName=d.cloud.uploaderName||'';} }catch(e){} }
+                    if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||''; cloud.value.lastSyncTime=d.cloud.lastSyncTime||null; cloud.value.uploaderName=d.cloud.uploaderName||''; cloud.value.uploaderId=d.cloud.uploaderId||generateUserId();} }catch(e){} }
                 };
                 const downloadJSON = () => {
                     const memberCount = members.value.length;
@@ -1286,32 +1423,109 @@
                 };
 
                 const performUpload = async () => {
-                    cloud.value.loading = true; cloud.value.syncStatus = '上传中...';
-                    const payload = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value, exportTime: new Date().toISOString(), version: generateVersion(), uploaderName: cloud.value.uploaderName };
+                    cloud.value.loading = true; 
+                    cloud.value.syncStatus = '正在上传...';
+                    
+                    // 先获取当前版本列表
+                    await updateVersionsList();
+                    
+                    // 找到下一个可用的版本槽位（0-4）
+                    let nextVersionIndex = 0;
+                    if (cloud.value.versions.length < 5) {
+                        // 还有空位，使用第一个未使用的索引
+                        const usedIndices = cloud.value.versions.map(v => v.index);
+                        for (let i = 0; i < 5; i++) {
+                            if (!usedIndices.includes(i)) {
+                                nextVersionIndex = i;
+                                break;
+                            }
+                        }
+                    } else {
+                        // 已满，覆盖最旧的版本
+                        const oldestVersion = cloud.value.versions[cloud.value.versions.length - 1];
+                        nextVersionIndex = oldestVersion.index;
+                    }
+                    
+                    const payload = { 
+                        members: members.value, 
+                        batches: batches.value, 
+                        currentBatchId: currentBatchId.value, 
+                        memberFilters: memberFilters.value, 
+                        exportTime: getCurrentTimestamp(), 
+                        version: generateVersion(), 
+                        uploaderName: cloud.value.uploaderName,
+                        uploaderId: cloud.value.uploaderId 
+                    };
+                    
+                    const fileName = getVersionFileName(nextVersionIndex);
+                    
                     try {
                         const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, {
                             method: 'PATCH',
-                            headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ files: { 'caravan_data.json': { content: JSON.stringify(payload) } } })
+                            headers: { 
+                                'Authorization': `token ${cloud.value.token}`, 
+                                'Accept': 'application/vnd.github.v3+json', 
+                                'Content-Type': 'application/json' 
+                            },
+                            body: JSON.stringify({ 
+                                files: { 
+                                    [fileName]: { content: JSON.stringify(payload) } 
+                                } 
+                            })
                         });
                         if(!res.ok) throw new Error('上传失败');
+                        
                         cloud.value.lastSyncTime = new Date().toISOString();
                         saveData();
-                        cloud.value.syncStatus = `✅ 上传成功 (${cloud.value.uploaderName})`;
-                    } catch(e) { cloud.value.syncStatus = `❌ 上传失败: ${e.message}`; }
-                    finally { cloud.value.loading = false; }
+                        
+                        // 刷新版本列表
+                        await updateVersionsList();
+                        
+                        cloud.value.syncStatus = `✅ 上传成功 (${fileName})`;
+                        showToast(`✅ 已保存到版本 ${nextVersionIndex + 1}/5`);
+                    } catch(e) { 
+                        cloud.value.syncStatus = `❌ 上传失败: ${e.message}`;
+                        showToast(`❌ 上传失败: ${e.message}`, 'error');
+                    }
+                    finally { 
+                        cloud.value.loading = false; 
+                    }
                 };
 
                 const saveCloudConfig = () => { saveData(); cloud.value.syncStatus = '配置已保存'; setTimeout(()=>cloud.value.syncStatus='', 2000); };
-                const syncFromCloud = async () => {
-                    if(!cloud.value.token || !cloud.value.gistId) return cloud.value.syncStatus = '请先配置 Token 和 Gist ID';
-                    cloud.value.loading = true; cloud.value.syncStatus = '检查云端数据...';
+                
+                // 从指定版本下载
+                const syncFromVersion = async (versionIndex) => {
+                    if(!cloud.value.token || !cloud.value.gistId) {
+                        showToast('请先配置 Token 和 Gist ID', 'error');
+                        return;
+                    }
+                    
+                    cloud.value.loading = true; 
+                    cloud.value.syncStatus = `正在获取版本 ${versionIndex + 1}...`;
+                    
                     try {
-                        const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                        const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { 
+                            headers: { 
+                                'Authorization': `token ${cloud.value.token}`, 
+                                'Accept': 'application/vnd.github.v3+json' 
+                            } 
+                        });
                         if(!res.ok) throw new Error('请求失败');
-                        const data = await res.json();
-                        const content = JSON.parse(data.files['caravan_data.json']?.content || '{}');
                         
+                        const data = await res.json();
+                        const fileName = getVersionFileName(versionIndex);
+                        const fileData = data.files[fileName];
+                        
+                        if (!fileData) {
+                            showToast(`版本 ${versionIndex + 1} 不存在`, 'error');
+                            cloud.value.loading = false;
+                            return;
+                        }
+                        
+                        const content = JSON.parse(fileData.content || '{}');
+                        
+                        // 显示确认对话框
                         const localData = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value };
                         const diffs = compareDataDiff(localData, content);
                         
@@ -1319,7 +1533,7 @@
                         const cloudUploader = content.uploaderName || '未知';
                         const cloudVersion = content.version || '未知';
                         
-                        let confirmMsg = `⚠️ 下载确认\n\n`;
+                        let confirmMsg = `⚠️ 恢复版本 ${versionIndex + 1}\n\n`;
                         confirmMsg += `☁️ 云端信息:\n`;
                         confirmMsg += `  • 更新时间: ${cloudTime}\n`;
                         confirmMsg += `  • 上传者: ${cloudUploader}\n`;
@@ -1331,19 +1545,46 @@
                             confirmMsg += `\n`;
                         }
                         
-                        confirmMsg += `确定要用云端数据覆盖本地数据吗？`;
+                        confirmMsg += `确定要恢复到这个版本吗？这将覆盖当前本地数据！`;
                         
                         if(!confirm(confirmMsg)) {
-                            cloud.value.syncStatus = '已取消下载';
+                            cloud.value.syncStatus = '已取消恢复';
                             cloud.value.loading = false;
                             return;
                         }
                         
-                        members.value = content.members || []; batches.value = content.batches || []; currentBatchId.value = content.currentBatchId; memberFilters.value = content.memberFilters || memberFilters.value;
+                        // 执行恢复
+                        members.value = content.members || [];
+                        batches.value = content.batches || [];
+                        currentBatchId.value = content.currentBatchId;
+                        memberFilters.value = content.memberFilters || memberFilters.value;
                         cloud.value.lastSyncTime = new Date().toISOString();
-                        saveData(); cloud.value.syncStatus = `✅ 下载成功 (上传者: ${cloudUploader})`;
-                    } catch(e) { cloud.value.syncStatus = `❌ 下载失败: ${e.message}`; }
-                    finally { cloud.value.loading = false; }
+                        saveData();
+                        
+                        cloud.value.syncStatus = `✅ 已恢复版本 ${versionIndex + 1}`;
+                        showToast(`✅ 成功恢复到版本 ${versionIndex + 1}`);
+                        
+                    } catch(e) { 
+                        cloud.value.syncStatus = `❌ 恢复失败: ${e.message}`;
+                        showToast(`❌ 恢复失败: ${e.message}`, 'error');
+                    }
+                    finally { 
+                        cloud.value.loading = false; 
+                    }
+                };
+                
+                const syncFromCloud = async () => {
+                    // 默认获取最新版本（第一个）
+                    await updateVersionsList();
+                    
+                    if (cloud.value.versions.length === 0) {
+                        showToast('云端没有可用版本', 'error');
+                        return;
+                    }
+                    
+                    // 获取最新版本索引
+                    const latestVersion = cloud.value.versions[0];
+                    await syncFromVersion(latestVersion.index);
                 };
                 const syncToCloud = async () => {
                     await showUploadConfirm();
@@ -1379,7 +1620,7 @@
                     openScheduleConfig, closeScheduleConfigModal, resetScheduleDateRange, previewSchedule, confirmSchedule,
                     getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, isMemberOverLimit, openManualEdit, confirmManualEdit, deleteDaySchedule, clearAllSchedule,
                     getRoleScheduledCount, getOverLimitCount, getPoolStats,
-                    downloadJSON, uploadJSON, exportToExcel, importFromExcel, saveCloudConfig, syncFromCloud, syncToCloud,
+                    downloadJSON, uploadJSON, exportToExcel, importFromExcel, saveCloudConfig, syncFromCloud, syncToCloud, syncFromVersion, updateVersionsList,
                     openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay,
                     cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate,
                     showToast
