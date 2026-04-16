@@ -221,13 +221,13 @@
                         <div class="flex-1 min-w-[120px]"><label class="text-xs font-medium text-gray-500 block mb-1">名称搜索</label><input v-model="memberFilters.name" type="text" class="w-full p-2 border rounded text-sm"></div>
                         <div class="w-20"><label class="text-xs font-medium text-gray-500 block mb-1">最小阶级</label><input v-model.number="memberFilters.minClass" type="number" class="w-full p-2 border rounded text-sm"></div>
                         <div class="w-28"><label class="text-xs font-medium text-gray-500 block mb-1">最小战力</label><input v-model.number="memberFilters.minPower" type="number" class="w-full p-2 border rounded text-sm"></div>
-                        <div class="flex-1 min-w-[120px]"><label class="text-xs font-medium text-gray-500 block mb-1">排序方式</label><select v-model="memberFilters.sortBy" class="w-full p-2 border rounded text-sm"><option value="power_desc">战力降序</option><option value="power_asc">战力升序</option><option value="class_desc">阶级降序</option><option value="class_asc">阶级升序</option><option value="furnace_desc">火炉降序</option><option value="furnace_asc">火炉升序</option><option value="weekMerit_desc">周功勋降序</option><option value="weekMerit_asc">周功勋升序</option><option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option><option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option><option value="guanduCredit_desc">官渡信用降序</option><option value="guanduCredit_asc">官渡信用升序</option><option value="luBuAttribute_desc">吕布属性降序</option><option value="luBuAttribute_asc">吕布属性升序</option></select></div>
+                        <div class="flex-1 min-w-[120px]"><label class="text-xs font-medium text-gray-500 block mb-1">排序方式</label><select v-model="memberFilters.sortBy" class="w-full p-2 border rounded text-sm"><option value="power_desc">战力降序</option><option value="power_asc">战力升序</option><option value="class_desc">阶级降序</option><option value="class_asc">阶级升序</option><option value="furnace_desc">火炉降序</option><option value="furnace_asc">火炉升序</option><option value="weekMerit_desc">周功勋降序</option><option value="weekMerit_asc">周功勋升序</option><option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option><option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option><option value="guanduCredit_desc">官渡信用降序</option><option value="guanduCredit_asc">官渡信用升序</option><option value="equipmentAttribute_desc">装备/人物属性降序</option><option value="equipmentAttribute_asc">装备/人物属性升序</option></select></div>
                         <div class="flex items-end w-full sm:w-auto"><button @click="resetMemberFilters" class="w-full p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm touch-target active:scale-95">重置</button></div>
                     </div>
                     <div class="overflow-x-auto max-h-96 rounded-lg border">
                         <table class="min-w-full text-sm text-left border-collapse">
                             <thead class="bg-gray-50 sticky top-0 z-10">
-                                <tr><th class="p-2 border">名称</th><th class="p-2 border">阶级</th><th class="p-2 border">火炉</th><th class="p-2 border">战力</th><th class="p-2 border">周功勋</th><th class="p-2 border">总功勋</th><th class="p-2 border">周捐献</th><th class="p-2 border">官渡信用</th><th class="p-2 border">吕布属性</th><th class="p-2 border">操作</th></tr>
+                                <tr><th class="p-2 border">名称</th><th class="p-2 border">阶级</th><th class="p-2 border">火炉</th><th class="p-2 border">战力</th><th class="p-2 border">周功勋</th><th class="p-2 border">总功勋</th><th class="p-2 border">周捐献</th><th class="p-2 border">官渡信用</th><th class="p-2 border">装备/人物属性</th><th class="p-2 border">操作</th></tr>
                             </thead>
                             <tbody>
                                 <tr v-for="m in filteredMembers" :key="m.id" class="border-b hover:bg-gray-50">
@@ -239,7 +239,7 @@
                                     <td class="p-2 border text-right font-mono">{{ m.totalMerit }}</td>
                                     <td class="p-2 border text-right font-mono">{{ m.weekDonation }}</td>
                                     <td class="p-2 border text-right font-mono">{{ m.guanduCredit || 100 }}</td>
-                                    <td class="p-2 border text-right font-mono">{{ m.luBuAttribute || 100 }}</td>
+                                    <td class="p-2 border text-right font-mono">{{ m.equipmentAttribute || 100 }}</td>
                                     <td class="p-2 border text-center"><button @click="deleteMember(m.id)" class="text-red-500 hover:text-red-700 text-sm touch-target">移除</button></td>
                                 </tr>
                             </tbody>
@@ -439,7 +439,7 @@
                     <div class="flex-1 min-w-[120px]"><label class="text-xs font-medium text-gray-500 block mb-1">名称</label><input v-model="memberModalFilters.name" placeholder="支持模糊" class="w-full p-2 border rounded text-sm"></div>
                     <div class="w-20"><label class="text-xs font-medium text-gray-500 block mb-1">最小阶级</label><input v-model.number="memberModalFilters.minClass" placeholder="如: 3" class="w-full p-2 border rounded text-sm"></div>
                     <div class="w-28"><label class="text-xs font-medium text-gray-500 block mb-1">最小战力</label><input v-model.number="memberModalFilters.minPower" placeholder="如: 10000" class="w-full p-2 border rounded text-sm"></div>
-                    <div class="flex-1 min-w-[140px]"><label class="text-xs font-medium text-gray-500 block mb-1">排序方式</label><select v-model="memberModalFilters.sortBy" class="w-full p-2 border rounded text-sm"><option value="power_desc">战力降序</option><option value="power_asc">战力升序</option><option value="class_desc">阶级降序</option><option value="class_asc">阶级升序</option><option value="furnace_desc">火炉降序</option><option value="furnace_asc">火炉升序</option><option value="weekMerit_desc">周功勋降序</option><option value="weekMerit_asc">周功勋升序</option><option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option><option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option><option value="guanduCredit_desc">官渡信用降序</option><option value="guanduCredit_asc">官渡信用升序</option><option value="luBuAttribute_desc">吕布属性降序</option><option value="luBuAttribute_asc">吕布属性升序</option></select></div>
+                    <div class="flex-1 min-w-[140px]"><label class="text-xs font-medium text-gray-500 block mb-1">排序方式</label><select v-model="memberModalFilters.sortBy" class="w-full p-2 border rounded text-sm"><option value="power_desc">战力降序</option><option value="power_asc">战力升序</option><option value="class_desc">阶级降序</option><option value="class_asc">阶级升序</option><option value="furnace_desc">火炉降序</option><option value="furnace_asc">火炉升序</option><option value="weekMerit_desc">周功勋降序</option><option value="weekMerit_asc">周功勋升序</option><option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option><option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option><option value="guanduCredit_desc">官渡信用降序</option><option value="guanduCredit_asc">官渡信用升序</option><option value="equipmentAttribute_desc">装备/人物属性降序</option><option value="equipmentAttribute_asc">装备/人物属性升序</option></select></div>
                     <div class="w-20"><button @click="resetModalFilters" class="w-full p-2 bg-gray-200 rounded text-sm hover:bg-gray-300 touch-target active:scale-95">重置</button></div>
                     <div class="flex items-center gap-2 bg-white border rounded px-2 py-1">
                         <input v-model.number="topNCount" type="number" min="1" class="w-12 p-1 border rounded text-center text-sm" placeholder="N">
@@ -482,7 +482,7 @@
                             <option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option>
                             <option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option>
                             <option value="guanduCredit_desc">官渡信用降序</option><option value="guanduCredit_asc">官渡信用升序</option>
-                            <option value="luBuAttribute_desc">吕布属性降序</option><option value="luBuAttribute_asc">吕布属性升序</option>
+                            <option value="equipmentAttribute_desc">装备/人物属性降序</option><option value="equipmentAttribute_asc">装备/人物属性升序</option>
                             <option value="random">随机</option>
                         </select>
                     </div>
@@ -533,7 +533,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t">
                         <div><label class="text-xs text-gray-500">官渡信用</label><input v-model.number="newPerson.guanduCredit" type="number" class="w-full p-2 border rounded mt-1" placeholder="默认100"></div>
-                        <div><label class="text-xs text-gray-500">吕布属性</label><input v-model.number="newPerson.luBuAttribute" type="number" class="w-full p-2 border rounded mt-1" placeholder="默认100"></div>
+                        <div><label class="text-xs text-gray-500">装备/人物属性</label><input v-model.number="newPerson.equipmentAttribute" type="number" class="w-full p-2 border rounded mt-1" placeholder="默认100"></div>
                     </div>
                 </div>
                 <div class="mt-6 flex justify-end space-x-3">
@@ -1038,7 +1038,7 @@
                             totalMerit: parseInt(p[6])||0, 
                             weekDonation: parseInt(p[7])||0,
                             guanduCredit: 100,
-                            luBuAttribute: 100
+                            equipmentAttribute: 100
                         });
                     }
                     parsedData.value = data;
@@ -1050,7 +1050,7 @@
                             // 更新时保留原有的权重值
                             const oldMember = members.value[idx];
                             p.guanduCredit = oldMember.guanduCredit || 100;
-                            p.luBuAttribute = oldMember.luBuAttribute || 100;
+                            p.equipmentAttribute = oldMember.equipmentAttribute || 100;
                             members.value[idx] = p;
                         } else {
                             // 新增时使用默认值
@@ -1063,7 +1063,7 @@
                 const clearAllMembers = () => { if(confirm('清空所有人员？')) { members.value = []; saveData(); } };
                 const resetMemberFilters = () => { memberFilters.value = { name: '', minClass: 0, minPower: 0, sortBy: 'power_desc' }; };
 
-                const openAddPersonModal = () => { newPerson.value = { name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0, guanduCredit: 100, luBuAttribute: 100 }; showAddPersonModal.value = true; };
+                const openAddPersonModal = () => { newPerson.value = { name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0, guanduCredit: 100, equipmentAttribute: 100 }; showAddPersonModal.value = true; };
                 const confirmAddPerson = () => {
                     if (!newPerson.value.name || !newPerson.value.class) return alert('名称和阶级为必填项');
                     const id = newPerson.value.name.trim();
@@ -1238,7 +1238,7 @@
 
                 const exportToExcel = () => {
                     // 生成CSV格式（可用Excel打开）
-                    const headers = ['ID', '名称', '阶级', '火炉等级', '战力', '周功勋', '总功勋', '周捐献', '官渡信用', '吕布属性'];
+                    const headers = ['ID', '名称', '阶级', '火炉等级', '战力', '周功勋', '总功勋', '周捐献', '官渡信用', '装备/人物属性'];
                     const rows = members.value.map(m => [
                         m.id,
                         m.name,
@@ -1249,7 +1249,7 @@
                         m.totalMerit,
                         m.weekDonation,
                         m.guanduCredit || 100,
-                        m.luBuAttribute || 100
+                        m.equipmentAttribute || 100
                     ]);
                     
                     // 添加BOM头以支持中文
@@ -1296,7 +1296,7 @@
                                     totalMerit: parseInt(cols[6]) || 0,
                                     weekDonation: parseInt(cols[7]) || 0,
                                     guanduCredit: parseInt(cols[8]) || 100,
-                                    luBuAttribute: parseInt(cols[9]) || 100
+                                    equipmentAttribute: parseInt(cols[9]) || 100
                                 });
                             }
                             
@@ -1333,14 +1333,14 @@
                                     members.value[idx] = {
                                         ...newM,
                                         guanduCredit: newM.guanduCredit !== undefined ? newM.guanduCredit : (oldM.guanduCredit || 100),
-                                        luBuAttribute: newM.luBuAttribute !== undefined ? newM.luBuAttribute : (oldM.luBuAttribute || 100)
+                                        equipmentAttribute: newM.equipmentAttribute !== undefined ? newM.equipmentAttribute : (oldM.equipmentAttribute || 100)
                                     };
                                 } else {
                                     // 新增时使用默认值
                                     members.value.push({
                                         ...newM,
                                         guanduCredit: newM.guanduCredit || 100,
-                                        luBuAttribute: newM.luBuAttribute || 100
+                                        equipmentAttribute: newM.equipmentAttribute || 100
                                     });
                                 }
                             });
@@ -1398,14 +1398,14 @@
                                     return {
                                         ...newM,
                                         guanduCredit: newM.guanduCredit !== undefined ? newM.guanduCredit : (oldM.guanduCredit || 100),
-                                        luBuAttribute: newM.luBuAttribute !== undefined ? newM.luBuAttribute : (oldM.luBuAttribute || 100)
+                                        equipmentAttribute: newM.equipmentAttribute !== undefined ? newM.equipmentAttribute : (oldM.equipmentAttribute || 100)
                                     };
                                 }
                                 // 新增时设置默认值
                                 return {
                                     ...newM,
                                     guanduCredit: newM.guanduCredit || 100,
-                                    luBuAttribute: newM.luBuAttribute || 100
+                                    equipmentAttribute: newM.equipmentAttribute || 100
                                 };
                             });
                             
