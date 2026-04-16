@@ -421,27 +421,26 @@
                             <div class="hidden md:grid grid-cols-7 gap-2">
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
                                 <div v-for="(day, idx) in calendarDays" :key="idx" 
-                                     class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md"
+                                     @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
+                                     class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md cursor-pointer"
                                      :class="[
-                                         day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
+                                         day.currentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 text-gray-400',
                                          day.isToday ? 'ring-2 ring-blue-500' : ''
                                      ]">
                                     <span class="text-xs font-medium mb-1">{{ day.date }}</span>
                                     <template v-if="day.currentMonth && day.dateStr">
                                         <!-- 队长区域 -->
-                                        <div @click.stop="openManualEdit(day.dateStr, 'leader')" 
-                                             class="text-xs rounded px-1 py-0.5 mb-1 truncate leading-tight cursor-pointer transition active:scale-98"
-                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'text-gray-300 hover:bg-gray-100'">
+                                        <div class="text-xs rounded px-1 py-0.5 mb-1 truncate leading-tight"
+                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300'">
                                             <span v-if="getSchedule(day.dateStr, 'leader')">👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}</span>
-                                            <span v-else>👑 点击设置队长</span>
+                                            <span v-else>-</span>
                                         </div>
                                                             
                                         <!-- 护卫区域 -->
-                                        <div @click.stop="openManualEdit(day.dateStr, 'guard')" 
-                                             class="text-xs rounded px-1 py-0.5 truncate leading-tight cursor-pointer transition active:scale-98"
-                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'text-gray-300 hover:bg-gray-100'">
+                                        <div class="text-xs rounded px-1 py-0.5 truncate leading-tight"
+                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700' : 'text-gray-300'">
                                             <span v-if="getSchedule(day.dateStr, 'guard')">🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}</span>
-                                            <span v-else>🛡️ 点击设置护卫</span>
+                                            <span v-else>-</span>
                                         </div>
                                     </template>
                                 </div>
@@ -451,6 +450,7 @@
                             <div class="md:hidden grid grid-cols-7 gap-1">
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-xs">{{ w }}</div>
                                 <div v-for="(day, idx) in calendarDays" :key="idx" 
+                                     @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
                                      class="border rounded-lg p-1 min-h-[60px] flex flex-col items-center justify-start cursor-pointer transition active:scale-95"
                                      :class="[
                                          day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
@@ -459,17 +459,15 @@
                                      ]">
                                     <span class="text-sm font-bold mb-1">{{ day.date }}</span>
                                     <div v-if="day.currentMonth && day.dateStr" class="flex flex-col gap-0.5 w-full px-0.5">
-                                        <div @click.stop="openManualEdit(day.dateStr, 'leader')" 
-                                             class="text-xs text-center py-0.5 rounded cursor-pointer active:scale-95 transition"
-                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300 hover:bg-gray-100'">
+                                        <div class="text-xs text-center py-0.5 rounded"
+                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300'">
                                             <span v-if="getSchedule(day.dateStr, 'leader')">👑</span>
-                                            <span v-else class="text-[10px]">+队长</span>
+                                            <span v-else>-</span>
                                         </div>
-                                        <div @click.stop="openManualEdit(day.dateStr, 'guard')" 
-                                             class="text-xs text-center py-0.5 rounded cursor-pointer active:scale-95 transition"
-                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700' : 'text-gray-300 hover:bg-gray-100'">
+                                        <div class="text-xs text-center py-0.5 rounded"
+                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700' : 'text-gray-300'">
                                             <span v-if="getSchedule(day.dateStr, 'guard')">🛡️</span>
-                                            <span v-else class="text-[10px]">+护卫</span>
+                                            <span v-else>-</span>
                                         </div>
                                     </div>
                                 </div>
