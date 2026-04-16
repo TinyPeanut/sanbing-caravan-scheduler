@@ -55,6 +55,22 @@
         </aside>
         <div v-if="mobileMenuOpen" @click="mobileMenuOpen = false" class="fixed inset-0 bg-black bg-opacity-40 z-30 md:hidden"></div>
 
+        <!-- 云端更新悬浮提示 -->
+        <div v-if="cloudUpdateAvailable && cloudUpdateInfo" 
+             class="fixed top-16 right-4 md:right-8 z-40 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-xs animate-bounce cursor-pointer"
+             @click="handleCloudUpdate">
+            <div class="flex items-start gap-3">
+                <div class="text-2xl">☁️</div>
+                <div class="flex-1">
+                    <div class="font-bold text-sm mb-1">云端有更新</div>
+                    <div class="text-xs opacity-90">上传者: {{ cloudUpdateInfo.uploader }}</div>
+                    <div class="text-xs opacity-90">{{ cloudUpdateInfo.updateTime }}</div>
+                    <div class="text-xs mt-1.5 font-medium underline">点击更新 →</div>
+                </div>
+                <button @click.stop="dismissCloudUpdate" class="text-white opacity-70 hover:opacity-100 text-lg leading-none">✕</button>
+            </div>
+        </div>
+
         <main class="flex-1 overflow-y-auto pt-14 md:pt-0 p-3 md:p-8">
             <!-- 人员管理 -->
             <div v-if="currentView === 'members'" class="max-w-6xl mx-auto space-y-4 md:space-y-6">
@@ -513,6 +529,8 @@
                 const calendarDate = ref(new Date());
                 const showCalendarDayModal = ref(false);
                 const selectedCalendarDay = ref('');
+                const cloudUpdateAvailable = ref(false);
+                const cloudUpdateInfo = ref(null);
 
                 // URL参数管理
                 const updateURLParams = () => {
@@ -566,20 +584,37 @@
                         const cloudTime = new Date(cloudContent.exportTime).getTime();
                         const localTime = cloud.value.lastSyncTime ? new Date(cloud.value.lastSyncTime).getTime() : 0;
                         
-                        // 如果云端数据更新，提示用户
+                        // 如果云端数据更新，显示悬浮提示
                         if(cloudTime > localTime) {
-                            const cloudUploader = cloudContent.uploaderName || '未知';
-                            const updateTime = new Date(cloudContent.exportTime).toLocaleString('zh-CN');
-                            
-                            setTimeout(() => {
-                                if(confirm(`☁️ 检测到云端有更新\n\n上传者: ${cloudUploader}\n更新时间: ${updateTime}\n\n是否立即下载？`)) {
-                                    syncFromCloud();
-                                }
-                            }, 500);
+                            cloudUpdateInfo.value = {
+                                uploader: cloudContent.uploaderName || '未知',
+                                updateTime: new Date(cloudContent.exportTime).toLocaleString('zh-CN'),
+                                timestamp: cloudContent.exportTime
+                            };
+                            cloudUpdateAvailable.value = true;
                         }
                     } catch(e) {
                         console.log('检查云端更新失败:', e);
                     }
+                };
+
+                // 手动执行云端更新
+                const handleCloudUpdate = async () => {
+                    if(!cloudUpdateAvailable.value) return;
+                    
+                    const confirmMsg = `☁️ 检测到云端有更新\n\n上传者: ${cloudUpdateInfo.value.uploader}\n更新时间: ${cloudUpdateInfo.value.updateTime}\n\n是否立即下载？`;
+                    
+                    if(confirm(confirmMsg)) {
+                        await syncFromCloud();
+                        cloudUpdateAvailable.value = false;
+                        cloudUpdateInfo.value = null;
+                    }
+                };
+
+                // 关闭更新提示
+                const dismissCloudUpdate = () => {
+                    cloudUpdateAvailable.value = false;
+                    cloudUpdateInfo.value = null;
                 };
 
                 const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1015,7 +1050,8 @@
                     getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, isMemberOverLimit, openManualEdit, confirmManualEdit, deleteDaySchedule, clearAllSchedule,
                     getRoleScheduledCount, getOverLimitCount, getPoolStats,
                     downloadJSON, uploadJSON, saveCloudConfig, syncFromCloud, syncToCloud,
-                    openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay
+                    openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay,
+                    cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate
                 };
             }
         }).mount('#app');
