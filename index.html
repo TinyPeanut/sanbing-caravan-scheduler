@@ -678,7 +678,7 @@
                                     <span class="text-xs text-gray-400">{{ new Date(version.timestamp).toLocaleString('zh-CN') }}</span>
                                 </div>
                                 <div class="text-xs text-gray-600 space-y-1">
-                                    <div><i class="fas fa-user mr-1"></i>{{ version.uploaderName }} <span class="text-gray-400">({{ version.uploaderId.substr(0, 12) }}...)</span></div>
+                                    <div><i class="fas fa-user mr-1"></i>{{ version.uploaderName }} <span class="text-gray-400">({{ (version.uploaderId || '').substr(0, 12) }}...)</span></div>
                                     <div class="flex gap-3">
                                         <span><i class="fas fa-users mr-1"></i>{{ version.memberCount }} 成员</span>
                                         <span><i class="fas fa-layer-group mr-1"></i>{{ version.batchCount }} 批次</span>
@@ -1269,8 +1269,8 @@
 
                 const parseImport = () => {
                     const lines = importText.value.trim().split('\n');
-                    if (lines.length < 2) return alert('数据不足');
-                    if (!lines[0].includes('名称')) return alert('未识别表头');
+                    if (lines.length < 2) return showToast('数据不足', 'error');
+                    if (!lines[0].includes('名称')) return showToast('未识别表头', 'error');
                     const data = [];
                     for (let i = 1; i < lines.length; i++) {
                         const p = lines[i].trim().split(/\s+/);
@@ -1313,16 +1313,16 @@
 
                 const openAddPersonModal = () => { newPerson.value = { name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0, guanduCredit: 100, equipmentAttribute: 100 }; showAddPersonModal.value = true; };
                 const confirmAddPerson = () => {
-                    if (!newPerson.value.name || !newPerson.value.class) return alert('名称和阶级为必填项');
+                    if (!newPerson.value.name || !newPerson.value.class) return showToast('名称和阶级为必填项', 'error');
                     const id = newPerson.value.name.trim();
                     const idx = members.value.findIndex(m => m.id === id);
                     const data = { ...newPerson.value, id };
                     if (idx >= 0) members.value[idx] = data; else members.value.push(data);
-                    showAddPersonModal.value = false; saveData(); alert('保存成功');
+                    showAddPersonModal.value = false; saveData(); showToast('✅ 保存成功');
                 };
 
                 const createBatch = () => {
-                    if (!newBatch.value.name || !newBatch.value.start || !newBatch.value.end) return alert('请填写完整');
+                    if (!newBatch.value.name || !newBatch.value.start || !newBatch.value.end) return showToast('请填写完整', 'error');
                     batches.value.push({ id: Date.now().toString(), name: newBatch.value.name, start: newBatch.value.start, end: newBatch.value.end, leaderPool: { members: [] }, guardPool: { members: [] }, schedule: {} });
                     currentBatchId.value = batches.value[batches.value.length-1].id;
                     initCurrentMonthDates(); saveData();
@@ -1375,16 +1375,16 @@
                     const role = scheduleConfigRole.value;
                     const batch = currentBatch.value;
                     const pool = role === 'leader' ? batch.leaderPool : batch.guardPool;
-                    if(!pool.members.length) return alert('池子为空');
+                    if(!pool.members.length) return showToast('池子为空', 'error');
                     const days = []; let curr = getLocalDateString(scheduleConfig.value.startDate); const end = getLocalDateString(scheduleConfig.value.endDate);
                     while(curr <= end) { const ds = fmtDate(curr); if(!batch.schedule[ds] || !batch.schedule[ds][role]) days.push({ date: ds }); curr.setDate(curr.getDate()+1); }
-                    if(!days.length) return alert('无未排期日期');
+                    if(!days.length) return showToast('无未排期日期', 'warning');
                     const membersWithCount = pool.members.map(pm => {
                         const m = members.value.find(x => x.id === pm.id); if(!m) return null;
                         let c = 0; Object.values(batch.schedule).forEach(s => { if(s[role]===pm.id) c++; });
                         return { ...m, maxTimes: pm.maxTimes, remaining: pm.maxTimes - c };
                     }).filter(Boolean).filter(m => m.remaining > 0);
-                    if(!membersWithCount.length) return alert('成员次数已用完');
+                    if(!membersWithCount.length) return showToast('成员次数已用完', 'warning');
                     if(scheduleConfig.value.sortBy !== 'random') {
                         const [f, o] = scheduleConfig.value.sortBy.split('_');
                         membersWithCount.sort((a,b) => o==='desc' ? (b[f]||0)-(a[f]||0) : (a[f]||0)-(b[f]||0));
@@ -1397,13 +1397,13 @@
                     schedulePreview.value = preview;
                 };
                 const confirmSchedule = () => {
-                    if(!schedulePreview.value.length) return alert('请先预览');
+                    if(!schedulePreview.value.length) return showToast('请先预览', 'warning');
                     const role = scheduleConfigRole.value;
                     schedulePreview.value.forEach(item => {
                         if(!currentBatch.value.schedule[item.date]) currentBatch.value.schedule[item.date] = {};
                         currentBatch.value.schedule[item.date][role] = members.value.find(m=>m.name===item.memberName)?.id;
                     });
-                    saveData(); closeScheduleConfigModal(); alert(`已安排 ${schedulePreview.value.length} 天`); schedulePreview.value = [];
+                    saveData(); closeScheduleConfigModal(); showToast(`✅ 已安排 ${schedulePreview.value.length} 天`); schedulePreview.value = [];
                 };
 
                 const getSchedule = (date, role) => currentBatch.value?.schedule[date]?.[role] || null;
