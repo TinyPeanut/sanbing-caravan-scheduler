@@ -514,6 +514,37 @@
                 const showCalendarDayModal = ref(false);
                 const selectedCalendarDay = ref('');
 
+                // URL参数管理
+                const updateURLParams = () => {
+                    const params = new URLSearchParams();
+                    params.set('view', currentView.value);
+                    if(currentBatchId.value) params.set('batch', currentBatchId.value);
+                    if(currentView.value === 'calendar') {
+                        params.set('year', calendarDate.value.getFullYear());
+                        params.set('month', calendarDate.value.getMonth() + 1);
+                    }
+                    const newURL = window.location.pathname + '?' + params.toString();
+                    window.history.replaceState(null, '', newURL);
+                };
+
+                const loadURLParams = () => {
+                    const params = new URLSearchParams(window.location.search);
+                    const view = params.get('view');
+                    const batch = params.get('batch');
+                    const year = params.get('year');
+                    const month = params.get('month');
+                    
+                    if(view && ['members', 'batches', 'schedule', 'calendar', 'stats'].includes(view)) {
+                        currentView.value = view;
+                    }
+                    if(batch) {
+                        currentBatchId.value = batch;
+                    }
+                    if(year && month) {
+                        calendarDate.value = new Date(parseInt(year), parseInt(month) - 1, 1);
+                    }
+                };
+
                 const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                 const getLocalDateString = (dateStr) => { const [y, m, d] = dateStr.split('-').map(Number); return new Date(y, m-1, d); };
 
@@ -594,13 +625,24 @@
                 const changeMonth = (offset) => {
                     calendarDate.value = new Date(calendarDate.value.getFullYear(), calendarDate.value.getMonth() + offset, 1);
                 };
+                watch(currentView, () => {
+                    updateURLParams();
+                });
+                
                 watch(currentBatchId, (newId) => {
                     const batch = batches.value.find(b => b.id === newId);
                     if (batch) {
                         const [y, m] = batch.start.split('-').map(Number);
                         calendarDate.value = new Date(y, m - 1, 1);
                     }
+                    updateURLParams();
                 });
+                
+                watch(calendarDate, () => {
+                    if(currentView.value === 'calendar') {
+                        updateURLParams();
+                    }
+                }, { deep: true });
 
                 const parseImport = () => {
                     const lines = importText.value.trim().split('\n');
@@ -915,7 +957,11 @@
                     selectedCalendarDay.value = '';
                 };
 
-                onMounted(() => { initCurrentMonthDates(); loadData(); });
+                onMounted(() => { 
+                    initCurrentMonthDates(); 
+                    loadData();
+                    loadURLParams();
+                });
                 return {
                     currentView, mobileMenuOpen, importText, parsedData, members, batches, currentBatchId, currentBatch, batchDays,
                     memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth,
