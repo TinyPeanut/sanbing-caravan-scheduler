@@ -396,6 +396,7 @@
                 <div class="space-y-3">
                     <div><label class="text-sm font-medium text-gray-700">GitHub Token</label><input v-model="cloud.token" type="password" class="w-full p-2 border rounded mt-1" placeholder="ghp_xxxxxxxxxxxx"><p class="text-xs text-gray-400 mt-1">需勾选 <code>gist</code> 权限。</p></div>
                     <div><label class="text-sm font-medium text-gray-700">Gist ID</label><input v-model="cloud.gistId" class="w-full p-2 border rounded mt-1" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
+                    <div><label class="text-sm font-medium text-gray-700">上传人</label><input v-model="cloud.uploaderName" class="w-full p-2 border rounded mt-1" placeholder="请输入您的姓名"><p class="text-xs text-gray-400 mt-1">首次上传时必须填写，后续会自动带出。</p></div>
                     <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm mt-3', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
                     <div v-if="cloud.lastSyncTime" class="text-xs text-gray-500 mt-2">上次同步: {{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
                 </div>
@@ -444,7 +445,7 @@
                 const showAddPersonModal = ref(false);
                 const newPerson = ref({ name: '', class: 0, furnace: 0, power: 0, weekMerit: 0, totalMerit: 0, weekDonation: 0 });
                 const newBatch = ref({ name: '', start: '', end: '' });
-                const cloud = ref({ token: '', gistId: '', syncStatus: '', loading: false, lastSyncTime: null });
+                const cloud = ref({ token: '', gistId: '', syncStatus: '', loading: false, lastSyncTime: null, uploaderName: '' });
                 const calendarDate = ref(new Date());
 
                 const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -691,10 +692,10 @@
                     }).filter(Boolean);
                 };
 
-                const saveData = () => localStorage.setItem('caravan_v2', JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, cloud: {token: cloud.value.token, gistId: cloud.value.gistId, lastSyncTime: cloud.value.lastSyncTime}}));
+                const saveData = () => localStorage.setItem('caravan_v2', JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, cloud: {token: cloud.value.token, gistId: cloud.value.gistId, lastSyncTime: cloud.value.lastSyncTime, uploaderName: cloud.value.uploaderName}}));
                 const loadData = () => {
                     const r = localStorage.getItem('caravan_v2');
-                    if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||''; cloud.value.lastSyncTime=d.cloud.lastSyncTime||null;} }catch(e){} }
+                    if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||''; cloud.value.lastSyncTime=d.cloud.lastSyncTime||null; cloud.value.uploaderName=d.cloud.uploaderName||'';} }catch(e){} }
                 };
                 const downloadJSON = () => {
                     const blob = new Blob([JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, exportTime:new Date().toISOString(), version: generateVersion()}, null, 2)], {type:'application/json'});
@@ -722,6 +723,18 @@
 
                 const showUploadConfirm = async () => {
                     if(!cloud.value.token || !cloud.value.gistId) return cloud.value.syncStatus = '请先配置 Token 和 Gist ID';
+                    
+                    // 检查是否已输入上传者姓名
+                    if(!cloud.value.uploaderName || !cloud.value.uploaderName.trim()) {
+                        const name = prompt('请输入您的姓名（用于记录上传历史）：');
+                        if(!name || !name.trim()) {
+                            cloud.value.syncStatus = '❌ 必须输入姓名才能上传';
+                            return;
+                        }
+                        cloud.value.uploaderName = name.trim();
+                        saveData();
+                    }
+                    
                     cloud.value.loading = true; cloud.value.syncStatus = '检查云端数据...';
                     try {
                         const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json' } });
@@ -734,10 +747,13 @@
                         
                         const localTime = cloud.value.lastSyncTime ? new Date(cloud.value.lastSyncTime).toLocaleString('zh-CN') : '未知';
                         const cloudTime = cloudContent.exportTime ? new Date(cloudContent.exportTime).toLocaleString('zh-CN') : '未知';
+                        const lastUploader = cloudContent.uploaderName || '未知';
                         
                         let confirmMsg = `⚠️ 上传确认\n\n`;
+                        confirmMsg += `上传者: ${cloud.value.uploaderName}\n`;
                         confirmMsg += `本地最后同步: ${localTime}\n`;
-                        confirmMsg += `云端最后更新: ${cloudTime}\n\n`;
+                        confirmMsg += `云端最后更新: ${cloudTime}\n`;
+                        confirmMsg += `上次上传者: ${lastUploader}\n\n`;
                         
                         if(diffs.length > 0) {
                             confirmMsg += `数据差异:\n`;
@@ -761,7 +777,7 @@
 
                 const performUpload = async () => {
                     cloud.value.loading = true; cloud.value.syncStatus = '上传中...';
-                    const payload = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value, exportTime: new Date().toISOString(), version: generateVersion() };
+                    const payload = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value, exportTime: new Date().toISOString(), version: generateVersion(), uploaderName: cloud.value.uploaderName };
                     try {
                         const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, {
                             method: 'PATCH',
@@ -771,7 +787,7 @@
                         if(!res.ok) throw new Error('上传失败');
                         cloud.value.lastSyncTime = new Date().toISOString();
                         saveData();
-                        cloud.value.syncStatus = '✅ 上传成功';
+                        cloud.value.syncStatus = `✅ 上传成功 (${cloud.value.uploaderName})`;
                     } catch(e) { cloud.value.syncStatus = `❌ 上传失败: ${e.message}`; }
                     finally { cloud.value.loading = false; }
                 };
