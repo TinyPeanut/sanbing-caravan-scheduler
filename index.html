@@ -1153,6 +1153,9 @@
                 });
                 
                 const calendarDays = computed(() => {
+                    // 添加对 currentBatch.schedule 的依赖，确保排期更新时日历会重新渲染
+                    const scheduleDep = currentBatch.value?.schedule;
+                    
                     const y = calendarDate.value.getFullYear();
                     const m = calendarDate.value.getMonth();
                     const firstDay = new Date(y, m, 1);
