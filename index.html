@@ -428,26 +428,20 @@
                                      ]">
                                     <span class="text-xs font-medium mb-1">{{ day.date }}</span>
                                     <template v-if="day.currentMonth && day.dateStr">
-                                        <div @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'leader')" 
-                                             class="text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight cursor-pointer hover:bg-blue-100 transition active:scale-98"
-                                             :class="{'hover:bg-gray-100': !getSchedule(day.dateStr, 'leader')}">
+                                        <!-- 队长区域 -->
+                                        <div @click.stop="openManualEdit(day.dateStr, 'leader')" 
+                                             class="text-xs rounded px-1 py-0.5 mb-1 truncate leading-tight cursor-pointer transition active:scale-98"
+                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'text-gray-300 hover:bg-gray-100'">
                                             <span v-if="getSchedule(day.dateStr, 'leader')">👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}</span>
-                                            <span v-else class="text-gray-300">👑 点击设置队长</span>
-                                        </div>
-                                        <div v-else @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'leader')" 
-                                             class="text-xs text-gray-300 mb-1 truncate cursor-pointer hover:bg-gray-100 transition active:scale-98 px-1 py-0.5 rounded">
-                                            👑 点击设置队长
+                                            <span v-else>👑 点击设置队长</span>
                                         </div>
                                                             
-                                        <div @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'guard')" 
-                                             class="text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight cursor-pointer hover:bg-green-100 transition active:scale-98"
-                                             :class="{'hover:bg-gray-100': !getSchedule(day.dateStr, 'guard')}">
+                                        <!-- 护卫区域 -->
+                                        <div @click.stop="openManualEdit(day.dateStr, 'guard')" 
+                                             class="text-xs rounded px-1 py-0.5 truncate leading-tight cursor-pointer transition active:scale-98"
+                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'text-gray-300 hover:bg-gray-100'">
                                             <span v-if="getSchedule(day.dateStr, 'guard')">🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}</span>
-                                            <span v-else class="text-gray-300">🛡️ 点击设置护卫</span>
-                                        </div>
-                                        <div v-else @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'guard')" 
-                                             class="text-xs text-gray-300 truncate cursor-pointer hover:bg-gray-100 transition active:scale-98 px-1 py-0.5 rounded">
-                                            🛡️ 点击设置护卫
+                                            <span v-else>🛡️ 点击设置护卫</span>
                                         </div>
                                     </template>
                                 </div>
