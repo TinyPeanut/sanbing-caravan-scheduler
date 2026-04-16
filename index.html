@@ -1435,6 +1435,12 @@
                     if(currentBatch.value) {
                         if(!currentBatch.value.schedule[editModalDate.value]) currentBatch.value.schedule[editModalDate.value]={};
                         currentBatch.value.schedule[editModalDate.value][editModalRole.value]=editModalValue.value;
+                        
+                        // 如果队长和护卫都为空，则删除该日期的排期记录
+                        if (!currentBatch.value.schedule[editModalDate.value].leader && !currentBatch.value.schedule[editModalDate.value].guard) {
+                            delete currentBatch.value.schedule[editModalDate.value];
+                        }
+                        
                         saveData(); showEditModal.value=false;
                     }
                 };
