@@ -795,7 +795,7 @@
                 const saveCloudConfig = () => { saveData(); cloud.value.syncStatus = '配置已保存'; setTimeout(()=>cloud.value.syncStatus='', 2000); };
                 const syncFromCloud = async () => {
                     if(!cloud.value.token || !cloud.value.gistId) return cloud.value.syncStatus = '请先配置 Token 和 Gist ID';
-                    cloud.value.loading = true; cloud.value.syncStatus = '下载中...';
+                    cloud.value.loading = true; cloud.value.syncStatus = '检查云端数据...';
                     try {
                         const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json' } });
                         if(!res.ok) throw new Error('请求失败');
@@ -805,20 +805,33 @@
                         const localData = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value };
                         const diffs = compareDataDiff(localData, content);
                         
+                        const cloudTime = content.exportTime ? new Date(content.exportTime).toLocaleString('zh-CN') : '未知';
+                        const cloudUploader = content.uploaderName || '未知';
+                        const cloudVersion = content.version || '未知';
+                        
+                        let confirmMsg = `⚠️ 下载确认\n\n`;
+                        confirmMsg += `☁️ 云端信息:\n`;
+                        confirmMsg += `  • 更新时间: ${cloudTime}\n`;
+                        confirmMsg += `  • 上传者: ${cloudUploader}\n`;
+                        confirmMsg += `  • 版本号: ${cloudVersion}\n\n`;
+                        
                         if(diffs.length > 0) {
-                            let confirmMsg = `⚠️ 下载确认\n\n检测到数据差异:\n`;
-                            diffs.forEach(d => confirmMsg += `• ${d}\n`);
-                            confirmMsg += `\n确定要用云端数据覆盖本地数据吗？`;
-                            if(!confirm(confirmMsg)) {
-                                cloud.value.syncStatus = '已取消下载';
-                                cloud.value.loading = false;
-                                return;
-                            }
+                            confirmMsg += `📊 数据差异:\n`;
+                            diffs.forEach(d => confirmMsg += `  • ${d}\n`);
+                            confirmMsg += `\n`;
+                        }
+                        
+                        confirmMsg += `确定要用云端数据覆盖本地数据吗？`;
+                        
+                        if(!confirm(confirmMsg)) {
+                            cloud.value.syncStatus = '已取消下载';
+                            cloud.value.loading = false;
+                            return;
                         }
                         
                         members.value = content.members || []; batches.value = content.batches || []; currentBatchId.value = content.currentBatchId; memberFilters.value = content.memberFilters || memberFilters.value;
                         cloud.value.lastSyncTime = new Date().toISOString();
-                        saveData(); cloud.value.syncStatus = '✅ 下载成功，数据已覆盖';
+                        saveData(); cloud.value.syncStatus = `✅ 下载成功 (上传者: ${cloudUploader})`;
                     } catch(e) { cloud.value.syncStatus = `❌ 下载失败: ${e.message}`; }
                     finally { cloud.value.loading = false; }
                 };
