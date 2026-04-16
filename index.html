@@ -405,46 +405,59 @@
                         <div class="text-gray-400 text-sm">前往“批次与池子”选择或创建批次</div>
                     </div>
                     <div v-else>
-                        <!-- PC端紧凑布局 -->
-                        <div class="hidden md:grid grid-cols-7 gap-2">
-                            <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
-                            <div v-for="(day, idx) in calendarDays" :key="idx" 
-                                 @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
-                                 class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md cursor-pointer"
-                                 :class="[
-                                     day.currentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 text-gray-400',
-                                     day.isToday ? 'ring-2 ring-blue-500' : ''
-                                 ]">
-                                <span class="text-xs font-medium mb-1">{{ day.date }}</span>
-                                <template v-if="day.currentMonth && day.dateStr">
-                                    <div v-if="getSchedule(day.dateStr, 'leader')" class="text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight">
-                                        👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}
-                                    </div>
-                                    <div v-else class="text-xs text-gray-300 mb-1 truncate">-</div>
-                                                        
-                                    <div v-if="getSchedule(day.dateStr, 'guard')" class="text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight">
-                                        🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}
-                                    </div>
-                                    <div v-else class="text-xs text-gray-300 truncate">-</div>
-                                </template>
+                        <!-- 空状态提示：批次已选择但无排期 -->
+                        <div v-if="batchDays.length > 0 && !hasAnySchedule" class="text-center py-16">
+                            <div class="text-7xl mb-4">📅</div>
+                            <div class="text-gray-600 text-lg font-medium mb-2">暂无排期数据</div>
+                            <div class="text-gray-400 text-sm mb-6">当前批次 {{ currentBatch.name }} 还未进行排期</div>
+                            <div class="flex justify-center gap-3 flex-wrap">
+                                <button @click="currentView = 'pool'" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm touch-target active:scale-95">前往配置人员池</button>
+                                <button @click="openScheduleConfig('leader')" class="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm touch-target active:scale-95">快速自动排期</button>
                             </div>
                         </div>
-                                            
-                        <!-- 移动端大格子布局 -->
-                        <div class="md:hidden grid grid-cols-7 gap-1">
-                            <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-xs">{{ w }}</div>
-                            <div v-for="(day, idx) in calendarDays" :key="idx" 
-                                 @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
-                                 class="border rounded-lg p-1 min-h-[50px] flex flex-col items-center justify-center cursor-pointer transition active:scale-95"
-                                 :class="[
-                                     day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
-                                     day.isToday ? 'ring-2 ring-blue-500' : '',
-                                     day.currentMonth && day.dateStr && (getSchedule(day.dateStr, 'leader') || getSchedule(day.dateStr, 'guard')) ? 'bg-yellow-50 border-yellow-300' : ''
-                                 ]">
-                                <span class="text-sm font-bold">{{ day.date }}</span>
-                                <div v-if="day.currentMonth && day.dateStr" class="flex gap-0.5 mt-0.5">
-                                    <span v-if="getSchedule(day.dateStr, 'leader')" class="text-xs">👑</span>
-                                    <span v-if="getSchedule(day.dateStr, 'guard')" class="text-xs">🛡️</span>
+                        <!-- 有排期数据或正常显示日历 -->
+                        <div v-else>
+                            <!-- PC端紧凑布局 -->
+                            <div class="hidden md:grid grid-cols-7 gap-2">
+                                <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
+                                <div v-for="(day, idx) in calendarDays" :key="idx" 
+                                     @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
+                                     class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md cursor-pointer"
+                                     :class="[
+                                         day.currentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 text-gray-400',
+                                         day.isToday ? 'ring-2 ring-blue-500' : ''
+                                     ]">
+                                    <span class="text-xs font-medium mb-1">{{ day.date }}</span>
+                                    <template v-if="day.currentMonth && day.dateStr">
+                                        <div v-if="getSchedule(day.dateStr, 'leader')" class="text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight">
+                                            👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}
+                                        </div>
+                                        <div v-else class="text-xs text-gray-300 mb-1 truncate">-</div>
+                                                            
+                                        <div v-if="getSchedule(day.dateStr, 'guard')" class="text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight">
+                                            🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}
+                                        </div>
+                                        <div v-else class="text-xs text-gray-300 truncate">-</div>
+                                    </template>
+                                </div>
+                            </div>
+                                                
+                            <!-- 移动端大格子布局 -->
+                            <div class="md:hidden grid grid-cols-7 gap-1">
+                                <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-xs">{{ w }}</div>
+                                <div v-for="(day, idx) in calendarDays" :key="idx" 
+                                     @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
+                                     class="border rounded-lg p-1 min-h-[50px] flex flex-col items-center justify-center cursor-pointer transition active:scale-95"
+                                     :class="[
+                                         day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
+                                         day.isToday ? 'ring-2 ring-blue-500' : '',
+                                         day.currentMonth && day.dateStr && (getSchedule(day.dateStr, 'leader') || getSchedule(day.dateStr, 'guard')) ? 'bg-yellow-50 border-yellow-300' : ''
+                                     ]">
+                                    <span class="text-sm font-bold">{{ day.date }}</span>
+                                    <div v-if="day.currentMonth && day.dateStr" class="flex gap-0.5 mt-0.5">
+                                        <span v-if="getSchedule(day.dateStr, 'leader')" class="text-xs">👑</span>
+                                        <span v-if="getSchedule(day.dateStr, 'guard')" class="text-xs">🛡️</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1199,6 +1212,19 @@
                     const pool = editModalRole.value === 'leader' ? currentBatch.value.leaderPool : currentBatch.value.guardPool;
                     return pool.members || [];
                 });
+                
+                // 判断是否有任何排期数据
+                const hasAnySchedule = computed(() => {
+                    if (!currentBatch.value || !currentBatch.value.schedule) return false;
+                    const schedule = currentBatch.value.schedule;
+                    for (const date in schedule) {
+                        // 只有当 leader 或 guard 有实际值（非 null、非 undefined）时才认为有排期
+                        if (schedule[date].leader || schedule[date].guard) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
 
                 // 修复日历切换与批次联动
                 const changeMonth = (offset) => {
@@ -1417,6 +1443,12 @@
                     if(currentBatch.value) {
                         if(!currentBatch.value.schedule[date]) currentBatch.value.schedule[date]={};
                         currentBatch.value.schedule[date][role] = value || null;
+                        
+                        // 如果队长和护卫都为空，则删除该日期的排期记录
+                        if (!currentBatch.value.schedule[date].leader && !currentBatch.value.schedule[date].guard) {
+                            delete currentBatch.value.schedule[date];
+                        }
+                        
                         saveData();
                     }
                 };
