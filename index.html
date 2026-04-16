@@ -650,8 +650,36 @@
                 </div>
                 
                 <div class="flex-1 overflow-y-auto p-6 space-y-4">
-                    <!-- 配置区域 -->
-                    <div v-if="!cloud.configSaved" class="space-y-3">
+                    <!-- 配置状态卡片 - 始终显示 -->
+                    <div class="p-4 border rounded-lg transition" :class="cloud.token && cloud.gistId ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <i :class="cloud.token && cloud.gistId ? 'fas fa-check-circle text-green-600' : 'fas fa-cloud text-gray-400'" class="text-xl"></i>
+                                <span class="font-medium" :class="cloud.token && cloud.gistId ? 'text-green-800' : 'text-gray-600'">
+                                    {{ cloud.token && cloud.gistId ? '云端同步已配置' : '未配置云端同步' }}
+                                </span>
+                            </div>
+                            <button @click="editCloudConfig" class="text-sm px-3 py-1.5 rounded-lg font-medium transition active:scale-95"
+                                    :class="cloud.token && cloud.gistId ? 'text-blue-600 hover:bg-blue-100' : 'text-gray-600 hover:bg-gray-200'">
+                                <i class="fas fa-edit mr-1"></i>{{ cloud.token && cloud.gistId ? '编辑配置' : '立即配置' }}
+                            </button>
+                        </div>
+                        
+                        <!-- 配置信息概览 -->
+                        <div v-if="cloud.token && cloud.gistId" class="text-xs text-green-700 space-y-1">
+                            <div><i class="fas fa-key mr-1"></i>Token: {{ maskToken(cloud.token) }}</div>
+                            <div><i class="fas fa-code mr-1"></i>Gist ID: {{ (cloud.gistId || '').substr(0, 8) }}...{{ (cloud.gistId || '').substr(-4) }}</div>
+                            <div v-if="cloud.uploaderName"><i class="fas fa-user mr-1"></i>上传人：{{ cloud.uploaderName }}</div>
+                            <div v-if="cloud.lastSyncTime"><i class="fas fa-clock mr-1"></i>上次同步：{{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
+                        </div>
+                        <div v-else class="text-xs text-gray-500">
+                            <i class="fas fa-info-circle mr-1"></i>点击"立即配置"按钮填写 GitHub Token 和 Gist ID
+                        </div>
+                    </div>
+                    
+                    <!-- 编辑表单 - 仅当处于编辑模式时显示 -->
+                    <div v-if="!cloud.configSaved" class="space-y-3 pt-2 border-t border-dashed">
+                        <div class="text-sm font-medium text-gray-700 mb-2"><i class="fas fa-pen-to-square mr-1"></i>配置详情</div>
                         <div><label class="text-sm font-medium text-gray-700">GitHub Token</label><input v-model="cloud.token" type="password" class="w-full p-2 border rounded mt-1" placeholder="ghp_xxxxxxxxxxxx"><p class="text-xs text-gray-400 mt-1">需勾选 <code>gist</code> 权限。</p></div>
                         <div><label class="text-sm font-medium text-gray-700">Gist ID</label><input v-model="cloud.gistId" class="w-full p-2 border rounded mt-1" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
                         <div class="grid grid-cols-2 gap-3">
@@ -659,24 +687,7 @@
                             <div><label class="text-sm font-medium text-gray-700">用户ID</label><input :value="cloud.uploaderId" readonly class="w-full p-2 border rounded mt-1 bg-gray-50 text-gray-500 text-xs" placeholder="自动生成"><p class="text-xs text-gray-400 mt-1">唯一标识</p></div>
                         </div>
                         <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm mt-3', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
-                        <div v-if="cloud.lastSyncTime" class="text-xs text-gray-500 mt-2">上次同步: {{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
-                    </div>
-                    
-                    <!-- 已配置状态 - 显示为按钮 -->
-                    <div v-else class="space-y-3">
-                        <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="font-medium text-green-800"><i class="fas fa-check-circle mr-2"></i>云端同步已配置</span>
-                                <button @click="editCloudConfig" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                    <i class="fas fa-edit mr-1"></i>编辑配置
-                                </button>
-                            </div>
-                            <div class="text-xs text-green-700 space-y-1">
-                                <div><i class="fas fa-key mr-1"></i>Token: {{ (cloud.token || '').substr(0, 12) }}...{{ (cloud.token || '').substr(-4) }}</div>
-                                <div><i class="fas fa-code mr-1"></i>Gist ID: {{ (cloud.gistId || '').substr(0, 8) }}...{{ (cloud.gistId || '').substr(-4) }}</div>
-                                <div v-if="cloud.lastSyncTime"><i class="fas fa-clock mr-1"></i>上次同步：{{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
-                            </div>
-                        </div>
+                        <div v-if="cloud.lastSyncTime" class="text-xs text-gray-500 mt-2">上次同步：{{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
                     </div>
                     
                     <!-- 版本列表 -->
@@ -1589,7 +1600,7 @@
                                 cloud.value.currentVersionIndex=d.cloud.currentVersionIndex!==undefined ? d.cloud.currentVersionIndex : null; 
                                 cloud.value.uploaderName=d.cloud.uploaderName||''; 
                                 cloud.value.uploaderId=d.cloud.uploaderId||generateUserId();
-                            }
+                                cloud.value.configSaved = (d.cloud.token && d.cloud.gistId) ? true : false;
                         }catch(e){
                             console.error('数据加载失败:', e);
                             showToast('❌ 数据加载失败，已重置', 'error');
@@ -1967,6 +1978,7 @@
 
                 const saveCloudConfig = () => { saveData(); cloud.value.configSaved = true; cloud.value.syncStatus = '配置已保存'; setTimeout(()=>cloud.value.syncStatus='', 2000); };
                 const editCloudConfig = () => { cloud.value.configSaved = false; };
+                const maskToken = (token) => { if(!token || token.length < 20) return token || ''; return token.substring(0, 12) + '...' + token.substring(token.length - 4); };
                 
                 // 从指定版本下载
                 const syncFromVersion = async (versionIndex) => {
@@ -2091,7 +2103,7 @@
                     memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth,
                     showMemberModal, memberModalTitle, memberModalFilters, filteredMembersForModal, currentPoolMembers, topNCount, editModalPoolMembers,
                     showScheduleConfigModal, scheduleConfigRole, scheduleConfig, schedulePreview,
-                    showEditModal, editModalDate, editModalRole, editModalValue, showCloudConfig, showHelpModal, showAddPersonModal, newPerson, newBatch, cloud,
+                    showEditModal, editModalDate, editModalRole, editModalValue, showCloudConfig, showHelpModal, showAddPersonModal, newPerson, newBatch, cloud, maskToken,
                     
                     parseImport, confirmImport, deleteMember, clearAllMembers, resetMemberFilters, openAddPersonModal, confirmAddPerson,
                     createBatch, deleteBatch, getBatchDaysCount,
