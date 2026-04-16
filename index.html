@@ -350,7 +350,7 @@
                                                     <option v-for="m in currentBatch.leaderPool.members" :key="m.id" :value="m.id" 
                                                             :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : ''">
                                                         {{ getMemberName(m.id) }} 
-                                                        <span v-if="isMemberOverLimit(m.id, 'leader')">(⚠️超次)</span>
+                                                        <span v-if="isMemberOverLimit(m.id, 'leader')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'leader') }}/上限:{{ getMemberLimit(m.id, 'leader') }})</span>
                                                         <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'leader') }})</span>
                                                     </option>
                                                 </select>
@@ -364,7 +364,7 @@
                                                     <option v-for="m in currentBatch.guardPool.members" :key="m.id" :value="m.id"
                                                             :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : ''">
                                                         {{ getMemberName(m.id) }}
-                                                        <span v-if="isMemberOverLimit(m.id, 'guard')">(⚠️超次)</span>
+                                                        <span v-if="isMemberOverLimit(m.id, 'guard')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'guard') }}/上限:{{ getMemberLimit(m.id, 'guard') }})</span>
                                                         <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'guard') }})</span>
                                                     </option>
                                                 </select>
@@ -461,7 +461,7 @@
                                         <td class="p-2 border-b font-medium">{{ s.name }}</td>
                                         <td class="p-2 border-b text-center">{{ s.maxTimes }}</td>
                                         <td class="p-2 border-b text-center font-bold" :class="s.isOverLimit ? 'text-red-600' : ''">{{ s.count }}</td>
-                                        <td class="p-2 border-b text-center"><span v-if="s.isOverLimit" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">超次</span><span v-else-if="s.count===s.maxTimes" class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已满</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">正常</span></td>
+                                        <td class="p-2 border-b text-center"><span v-if="s.isOverLimit" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">超次({{ s.count }}/{{ s.maxTimes }})</span><span v-else-if="s.count===s.maxTimes" class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已满</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">正常</span></td>
                                         <td class="p-2 border-b text-xs text-gray-500 truncate max-w-[200px]">{{ s.dates.join(', ') }}</td>
                                     </tr>
                                 </tbody>
@@ -472,11 +472,13 @@
                         <h3 class="font-bold mb-3">🛡️ 护卫统计</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
-                                <thead class="bg-gray-50"><tr><th class="p-2 border-b">名称</th><th class="p-2 border-b">上限</th><th class="p-2 border-b">已排</th><th class="p-2 border-b">状态</th><th class="p-2 border-b">日期</th></tr></thead>
+                                <thead class="bg-gray-50"><tr><th class="p-2 border-b text-left min-w-[100px]">名称</th><th class="p-2 border-b text-center w-16">上限</th><th class="p-2 border-b text-center w-16">已排</th><th class="p-2 border-b text-center w-20">状态</th><th class="p-2 border-b text-left">日期</th></tr></thead>
                                 <tbody>
                                     <tr v-for="s in getPoolStats('guard')" :key="s.id" :class="s.isOverLimit ? 'bg-red-50' : ''">
-                                        <td class="p-2 border-b">{{ s.name }}</td><td class="p-2 border-b">{{ s.maxTimes }}</td><td class="p-2 border-b font-bold" :class="s.isOverLimit ? 'text-red-600' : ''">{{ s.count }}</td>
-                                        <td class="p-2 border-b"><span v-if="s.isOverLimit" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">超次</span><span v-else-if="s.count===s.maxTimes" class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已满</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">正常</span></td>
+                                        <td class="p-2 border-b font-medium">{{ s.name }}</td>
+                                        <td class="p-2 border-b text-center">{{ s.maxTimes }}</td>
+                                        <td class="p-2 border-b text-center font-bold" :class="s.isOverLimit ? 'text-red-600' : ''">{{ s.count }}</td>
+                                        <td class="p-2 border-b text-center"><span v-if="s.isOverLimit" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">超次({{ s.count }}/{{ s.maxTimes }})</span><span v-else-if="s.count===s.maxTimes" class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded">已满</span><span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">正常</span></td>
                                         <td class="p-2 border-b text-xs text-gray-500 truncate max-w-[200px]">{{ s.dates.join(', ') }}</td>
                                     </tr>
                                 </tbody>
@@ -562,7 +564,7 @@
                     <option :value="null">-- 清空 --</option>
                     <option v-for="m in editModalPoolMembers" :key="m.id" :value="m.id">
                         {{ getMemberName(m.id) }} 
-                        <span v-if="isMemberOverLimit(m.id, editModalRole)" class="text-red-500 font-bold">(⚠️ 已超上限 {{ getMemberLimit(m.id, editModalRole) }})</span>
+                        <span v-if="isMemberOverLimit(m.id, editModalRole)" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, editModalRole) }}/上限:{{ getMemberLimit(m.id, editModalRole) }})</span>
                         <span v-else class="text-gray-400">(剩余: {{ getMemberRemainingTimes(m.id, editModalRole) }})</span>
                     </option>
                 </select>
@@ -1368,6 +1370,11 @@
                     const pm = pool.members.find(m=>m.id===mid); if(!pm) return 0;
                     let c=0; Object.values(currentBatch.value.schedule).forEach(s=>{if(s[role]===mid)c++;});
                     return pm.maxTimes - c;
+                };
+                const getMemberScheduledCount = (mid, role) => {
+                    if(!mid||!currentBatch.value) return 0;
+                    let c=0; Object.values(currentBatch.value.schedule).forEach(s=>{if(s[role]===mid)c++;});
+                    return c;
                 };
                 const isMemberOverLimit = (mid, role) => {
                     if(!mid||!currentBatch.value) return false;
