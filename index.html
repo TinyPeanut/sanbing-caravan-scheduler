@@ -213,27 +213,49 @@
                         <h2 class="text-xl font-bold text-gray-800">{{ calendarDate.getFullYear() }}年 {{ calendarDate.getMonth() + 1 }}月 排期日历</h2>
                         <button @click="changeMonth(1)" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">下月 ▶</button>
                     </div>
-                    <div v-if="!currentBatch" class="text-center py-12 text-gray-500">⚠️ 请先在"批次与池子"中选择批次</div>
-                    <div v-else class="grid grid-cols-7 gap-1 md:gap-2">
-                        <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
-                        <div v-for="(day, idx) in calendarDays" :key="idx" 
-                             class="border rounded-lg p-1 md:p-2 min-h-[70px] md:min-h-[90px] flex flex-col relative transition hover:shadow-md"
-                             :class="[
-                                 day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
-                                 day.isToday ? 'ring-2 ring-blue-500' : ''
-                             ]">
-                            <span class="text-xs font-medium mb-1">{{ day.date }}</span>
-                            <template v-if="day.currentMonth && day.dateStr">
-                                <div v-if="getSchedule(day.dateStr, 'leader')" class="text-[10px] md:text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight">
-                                    👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}
+                    <div v-if="!currentBatch" class="text-center py-12 text-gray-500">⚠️ 请先在“批次与池子”中选择批次</div>
+                    <div v-else>
+                        <!-- PC端紧凑布局 -->
+                        <div class="hidden md:grid grid-cols-7 gap-2">
+                            <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
+                            <div v-for="(day, idx) in calendarDays" :key="idx" 
+                                 class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md"
+                                 :class="[
+                                     day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
+                                     day.isToday ? 'ring-2 ring-blue-500' : ''
+                                 ]">
+                                <span class="text-xs font-medium mb-1">{{ day.date }}</span>
+                                <template v-if="day.currentMonth && day.dateStr">
+                                    <div v-if="getSchedule(day.dateStr, 'leader')" class="text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight">
+                                        👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}
+                                    </div>
+                                    <div v-else class="text-xs text-gray-300 mb-1 truncate">-</div>
+                                                        
+                                    <div v-if="getSchedule(day.dateStr, 'guard')" class="text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight">
+                                        🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}
+                                    </div>
+                                    <div v-else class="text-xs text-gray-300 truncate">-</div>
+                                </template>
+                            </div>
+                        </div>
+                                            
+                        <!-- 移动端大格子布局 -->
+                        <div class="md:hidden grid grid-cols-7 gap-1">
+                            <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-xs">{{ w }}</div>
+                            <div v-for="(day, idx) in calendarDays" :key="idx" 
+                                 @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
+                                 class="border rounded-lg p-1 min-h-[50px] flex flex-col items-center justify-center cursor-pointer transition active:scale-95"
+                                 :class="[
+                                     day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
+                                     day.isToday ? 'ring-2 ring-blue-500' : '',
+                                     day.currentMonth && day.dateStr && (getSchedule(day.dateStr, 'leader') || getSchedule(day.dateStr, 'guard')) ? 'bg-yellow-50 border-yellow-300' : ''
+                                 ]">
+                                <span class="text-sm font-bold">{{ day.date }}</span>
+                                <div v-if="day.currentMonth && day.dateStr" class="flex gap-0.5 mt-0.5">
+                                    <span v-if="getSchedule(day.dateStr, 'leader')" class="text-xs">👑</span>
+                                    <span v-if="getSchedule(day.dateStr, 'guard')" class="text-xs">🛡️</span>
                                 </div>
-                                <div v-else class="text-[10px] md:text-xs text-gray-300 mb-1 truncate">-</div>
-                                
-                                <div v-if="getSchedule(day.dateStr, 'guard')" class="text-[10px] md:text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight">
-                                    🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}
-                                </div>
-                                <div v-else class="text-[10px] md:text-xs text-gray-300 truncate">-</div>
-                            </template>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -410,6 +432,48 @@
                 </div>
             </div>
         </div>
+
+        <!-- 日历日期详情弹窗 -->
+        <div v-if="showCalendarDayModal && selectedCalendarDay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">📅 {{ selectedCalendarDay }} 排期详情</h3>
+                    <button @click="closeCalendarDayModal" class="text-gray-500 text-2xl hover:text-gray-700">✕</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- 队长信息 -->
+                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="text-sm text-blue-600 font-medium mb-2">👑 队长</div>
+                        <div v-if="getSchedule(selectedCalendarDay, 'leader')" class="text-lg font-bold text-blue-700">
+                            {{ getMemberName(getSchedule(selectedCalendarDay, 'leader')) }}
+                        </div>
+                        <div v-else class="text-gray-400">未安排</div>
+                    </div>
+                    
+                    <!-- 护卫信息 -->
+                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div class="text-sm text-green-600 font-medium mb-2">🛡️ 护卫</div>
+                        <div v-if="getSchedule(selectedCalendarDay, 'guard')" class="text-lg font-bold text-green-700">
+                            {{ getMemberName(getSchedule(selectedCalendarDay, 'guard')) }}
+                        </div>
+                        <div v-else class="text-gray-400">未安排</div>
+                    </div>
+                    
+                    <!-- 快速操作 -->
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <button @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'leader')" 
+                                class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium touch-target">
+                            ✏️ 修改队长
+                        </button>
+                        <button @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'guard')" 
+                                class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium touch-target">
+                            ✏️ 修改护卫
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -447,6 +511,8 @@
                 const newBatch = ref({ name: '', start: '', end: '' });
                 const cloud = ref({ token: '', gistId: '', syncStatus: '', loading: false, lastSyncTime: null, uploaderName: '' });
                 const calendarDate = ref(new Date());
+                const showCalendarDayModal = ref(false);
+                const selectedCalendarDay = ref('');
 
                 const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                 const getLocalDateString = (dateStr) => { const [y, m, d] = dateStr.split('-').map(Number); return new Date(y, m-1, d); };
@@ -839,6 +905,16 @@
                     await showUploadConfirm();
                 };
 
+                const openCalendarDayDetail = (dateStr) => {
+                    selectedCalendarDay.value = dateStr;
+                    showCalendarDayModal.value = true;
+                };
+
+                const closeCalendarDayModal = () => {
+                    showCalendarDayModal.value = false;
+                    selectedCalendarDay.value = '';
+                };
+
                 onMounted(() => { initCurrentMonthDates(); loadData(); });
                 return {
                     currentView, mobileMenuOpen, importText, parsedData, members, batches, currentBatchId, currentBatch, batchDays,
@@ -853,7 +929,8 @@
                     openScheduleConfig, closeScheduleConfigModal, resetScheduleDateRange, previewSchedule, confirmSchedule,
                     getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, isMemberOverLimit, openManualEdit, confirmManualEdit, deleteDaySchedule, clearAllSchedule,
                     getRoleScheduledCount, getOverLimitCount, getPoolStats,
-                    downloadJSON, uploadJSON, saveCloudConfig, syncFromCloud, syncToCloud
+                    downloadJSON, uploadJSON, saveCloudConfig, syncFromCloud, syncToCloud,
+                    openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay
                 };
             }
         }).mount('#app');
