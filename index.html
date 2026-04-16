@@ -557,7 +557,7 @@
                         <div><label class="text-sm font-medium text-gray-700">GitHub Token</label><input v-model="cloud.token" type="password" class="w-full p-2 border rounded mt-1" placeholder="ghp_xxxxxxxxxxxx"><p class="text-xs text-gray-400 mt-1">需勾选 <code>gist</code> 权限。</p></div>
                         <div><label class="text-sm font-medium text-gray-700">Gist ID</label><input v-model="cloud.gistId" class="w-full p-2 border rounded mt-1" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"></div>
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-sm font-medium text-gray-700">上传人姓名</label><input v-model="cloud.uploaderName" class="w-full p-2 border rounded mt-1" placeholder="您的姓名"><p class="text-xs text-gray-400 mt-1">仅供参考</p></div>
+                            <div><label class="text-sm font-medium text-gray-700">上传人</label><input v-model="cloud.uploaderName" class="w-full p-2 border rounded mt-1" placeholder="您的昵称"><p class="text-xs text-gray-400 mt-1">仅供参考</p></div>
                             <div><label class="text-sm font-medium text-gray-700">用户ID</label><input :value="cloud.uploaderId" readonly class="w-full p-2 border rounded mt-1 bg-gray-50 text-gray-500 text-xs" placeholder="自动生成"><p class="text-xs text-gray-400 mt-1">唯一标识</p></div>
                         </div>
                         <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm mt-3', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
