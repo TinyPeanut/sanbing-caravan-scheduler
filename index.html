@@ -238,8 +238,8 @@
                                     <td class="p-2 border text-right font-mono">{{ m.weekMerit }}</td>
                                     <td class="p-2 border text-right font-mono">{{ m.totalMerit }}</td>
                                     <td class="p-2 border text-right font-mono">{{ m.weekDonation }}</td>
-                                    <td class="p-2 border text-right font-mono">{{ m.guanduCredit || 100 }}</td>
-                                    <td class="p-2 border text-right font-mono">{{ m.equipmentAttribute || 100 }}</td>
+                                    <td class="p-2 border"><input v-model.number="m.guanduCredit" type="number" min="0" class="w-full p-1 border rounded text-right text-sm font-mono" @change="saveData()"></td>
+                                    <td class="p-2 border"><input v-model.number="m.equipmentAttribute" type="number" min="0" class="w-full p-1 border rounded text-right text-sm font-mono" @change="saveData()"></td>
                                     <td class="p-2 border text-center"><button @click="deleteMember(m.id)" class="text-red-500 hover:text-red-700 text-sm touch-target">移除</button></td>
                                 </tr>
                             </tbody>
@@ -1202,7 +1202,12 @@
                     if(r) { 
                         try{
                             const d=JSON.parse(r); 
-                            members.value=d.members||[]; 
+                            // 确保所有成员都有这两个字段
+                            members.value=(d.members||[]).map(m => ({
+                                ...m,
+                                guanduCredit: m.guanduCredit !== undefined ? m.guanduCredit : 100,
+                                equipmentAttribute: m.equipmentAttribute !== undefined ? m.equipmentAttribute : 100
+                            }));
                             batches.value=d.batches||[]; 
                             currentBatchId.value=d.currentBatchId; 
                             memberFilters.value=d.memberFilters||memberFilters.value; 
@@ -1390,7 +1395,7 @@
                                 return;
                             }
                             
-                            // 执行导入，保留权重值
+                            // 执行导入，保留权重值（确保字段完整）
                             const newMembers = (d.members||[]).map(newM => {
                                 const oldM = members.value.find(m => m.id === newM.id);
                                 if (oldM) {
@@ -1645,8 +1650,12 @@
                             return;
                         }
                         
-                        // 执行恢复
-                        members.value = content.members || [];
+                        // 执行恢复（确保字段完整）
+                        members.value = (content.members || []).map(m => ({
+                            ...m,
+                            guanduCredit: m.guanduCredit !== undefined ? m.guanduCredit : 100,
+                            equipmentAttribute: m.equipmentAttribute !== undefined ? m.equipmentAttribute : 100
+                        }));
                         batches.value = content.batches || [];
                         currentBatchId.value = content.currentBatchId;
                         memberFilters.value = content.memberFilters || memberFilters.value;
