@@ -405,13 +405,13 @@
                         <div class="text-gray-400 text-sm">前往“批次与池子”选择或创建批次</div>
                     </div>
                     <div v-else>
-                        <!-- 空状态提示：批次已选择但无排期 -->
-                        <div v-if="batchDays.length > 0 && !hasAnySchedule" class="text-center py-16">
+                        <!-- 空状态提示：批次已选择但完全无排期 -->
+                        <div v-if="Object.keys(currentBatch.schedule || {}).length === 0" class="text-center py-16">
                             <div class="text-7xl mb-4">📅</div>
                             <div class="text-gray-600 text-lg font-medium mb-2">暂无排期数据</div>
                             <div class="text-gray-400 text-sm mb-6">当前批次 {{ currentBatch.name }} 还未进行排期</div>
                             <div class="flex justify-center gap-3 flex-wrap">
-                                <button @click="currentView = 'pool'" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm touch-target active:scale-95">前往配置人员池</button>
+                                <button @click="currentView = 'batches'" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm touch-target active:scale-95">前往配置人员池</button>
                                 <button @click="openScheduleConfig('leader')" class="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-sm touch-target active:scale-95">快速自动排期</button>
                             </div>
                         </div>
