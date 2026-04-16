@@ -421,23 +421,34 @@
                             <div class="hidden md:grid grid-cols-7 gap-2">
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
                                 <div v-for="(day, idx) in calendarDays" :key="idx" 
-                                     @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
-                                     class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md cursor-pointer"
+                                     class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md"
                                      :class="[
-                                         day.currentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 text-gray-400',
+                                         day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
                                          day.isToday ? 'ring-2 ring-blue-500' : ''
                                      ]">
                                     <span class="text-xs font-medium mb-1">{{ day.date }}</span>
                                     <template v-if="day.currentMonth && day.dateStr">
-                                        <div v-if="getSchedule(day.dateStr, 'leader')" class="text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight">
-                                            👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}
+                                        <div @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'leader')" 
+                                             class="text-xs bg-blue-50 text-blue-700 rounded px-1 py-0.5 mb-1 truncate leading-tight cursor-pointer hover:bg-blue-100 transition active:scale-98"
+                                             :class="{'hover:bg-gray-100': !getSchedule(day.dateStr, 'leader')}">
+                                            <span v-if="getSchedule(day.dateStr, 'leader')">👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}</span>
+                                            <span v-else class="text-gray-300">👑 点击设置队长</span>
                                         </div>
-                                        <div v-else class="text-xs text-gray-300 mb-1 truncate">-</div>
+                                        <div v-else @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'leader')" 
+                                             class="text-xs text-gray-300 mb-1 truncate cursor-pointer hover:bg-gray-100 transition active:scale-98 px-1 py-0.5 rounded">
+                                            👑 点击设置队长
+                                        </div>
                                                             
-                                        <div v-if="getSchedule(day.dateStr, 'guard')" class="text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight">
-                                            🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}
+                                        <div @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'guard')" 
+                                             class="text-xs bg-green-50 text-green-700 rounded px-1 py-0.5 truncate leading-tight cursor-pointer hover:bg-green-100 transition active:scale-98"
+                                             :class="{'hover:bg-gray-100': !getSchedule(day.dateStr, 'guard')}">
+                                            <span v-if="getSchedule(day.dateStr, 'guard')">🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}</span>
+                                            <span v-else class="text-gray-300">🛡️ 点击设置护卫</span>
                                         </div>
-                                        <div v-else class="text-xs text-gray-300 truncate">-</div>
+                                        <div v-else @click.stop="day.currentMonth && day.dateStr && openManualEdit(day.dateStr, 'guard')" 
+                                             class="text-xs text-gray-300 truncate cursor-pointer hover:bg-gray-100 transition active:scale-98 px-1 py-0.5 rounded">
+                                            🛡️ 点击设置护卫
+                                        </div>
                                     </template>
                                 </div>
                             </div>
@@ -446,17 +457,26 @@
                             <div class="md:hidden grid grid-cols-7 gap-1">
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-xs">{{ w }}</div>
                                 <div v-for="(day, idx) in calendarDays" :key="idx" 
-                                     @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
-                                     class="border rounded-lg p-1 min-h-[50px] flex flex-col items-center justify-center cursor-pointer transition active:scale-95"
+                                     class="border rounded-lg p-1 min-h-[60px] flex flex-col items-center justify-start cursor-pointer transition active:scale-95"
                                      :class="[
                                          day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
                                          day.isToday ? 'ring-2 ring-blue-500' : '',
                                          day.currentMonth && day.dateStr && (getSchedule(day.dateStr, 'leader') || getSchedule(day.dateStr, 'guard')) ? 'bg-yellow-50 border-yellow-300' : ''
                                      ]">
-                                    <span class="text-sm font-bold">{{ day.date }}</span>
-                                    <div v-if="day.currentMonth && day.dateStr" class="flex gap-0.5 mt-0.5">
-                                        <span v-if="getSchedule(day.dateStr, 'leader')" class="text-xs">👑</span>
-                                        <span v-if="getSchedule(day.dateStr, 'guard')" class="text-xs">🛡️</span>
+                                    <span class="text-sm font-bold mb-1">{{ day.date }}</span>
+                                    <div v-if="day.currentMonth && day.dateStr" class="flex flex-col gap-0.5 w-full px-0.5">
+                                        <div @click.stop="openManualEdit(day.dateStr, 'leader')" 
+                                             class="text-xs text-center py-0.5 rounded cursor-pointer active:scale-95 transition"
+                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300 hover:bg-gray-100'">
+                                            <span v-if="getSchedule(day.dateStr, 'leader')">👑</span>
+                                            <span v-else class="text-[10px]">+队长</span>
+                                        </div>
+                                        <div @click.stop="openManualEdit(day.dateStr, 'guard')" 
+                                             class="text-xs text-center py-0.5 rounded cursor-pointer active:scale-95 transition"
+                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700' : 'text-gray-300 hover:bg-gray-100'">
+                                            <span v-if="getSchedule(day.dateStr, 'guard')">🛡️</span>
+                                            <span v-else class="text-[10px]">+护卫</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1436,21 +1456,53 @@
                 const openManualEdit = (date, role) => { editModalDate.value=date; editModalRole.value=role; editModalValue.value=getSchedule(date, role); showEditModal.value=true; };
                 const confirmManualEdit = () => {
                     if(currentBatch.value) {
-                        if(!currentBatch.value.schedule[editModalDate.value]) currentBatch.value.schedule[editModalDate.value]={};
-                        currentBatch.value.schedule[editModalDate.value][editModalRole.value]=editModalValue.value;
+                        const date = editModalDate.value;
+                        const role = editModalRole.value;
+                        const newValue = editModalValue.value;
                         
-                        // 如果队长和护卫都为空，则删除该日期的排期记录
-                        if (!currentBatch.value.schedule[editModalDate.value].leader && !currentBatch.value.schedule[editModalDate.value].guard) {
-                            delete currentBatch.value.schedule[editModalDate.value];
+                        // 确保日期对象存在
+                        if(!currentBatch.value.schedule[date]) {
+                            currentBatch.value.schedule[date] = {};
                         }
                         
-                        saveData(); showEditModal.value=false;
+                        // 记录旧值用于调试
+                        const oldValue = currentBatch.value.schedule[date][role];
+                        console.log(`修改排期: ${date} ${role === 'leader' ? '队长' : '护卫'}: ${oldValue || '空'} -> ${newValue || '空'}`);
+                        
+                        // 直接赋值新值
+                        currentBatch.value.schedule[date][role] = newValue;
+                        
+                        // 如果队长和护卫都为空，则删除该日期的排期记录
+                        if (!currentBatch.value.schedule[date].leader && !currentBatch.value.schedule[date].guard) {
+                            delete currentBatch.value.schedule[date];
+                        }
+                        
+                        // 强制触发响应式更新
+                        currentBatch.value.schedule = {...currentBatch.value.schedule};
+                        
+                        saveData(); 
+                        showEditModal.value = false;
+                        
+                        // 验证修改后的数据
+                        setTimeout(() => {
+                            const verifyCount = getMemberScheduledCount(newValue, role);
+                            console.log(`验证: ${newValue} 当前已排${role === 'leader' ? '队长' : '护卫'}次数:`, verifyCount);
+                        }, 100);
                     }
                 };
                 // 直接更新排期（用于下拉框）
                 const updateSchedule = (date, role, value) => {
                     if(currentBatch.value) {
-                        if(!currentBatch.value.schedule[date]) currentBatch.value.schedule[date]={};
+                        // 确保日期对象存在
+                        if(!currentBatch.value.schedule[date]) {
+                            currentBatch.value.schedule[date] = {};
+                        }
+                        
+                        // 记录旧值用于调试
+                        const oldValue = currentBatch.value.schedule[date][role];
+                        console.log(`下拉框修改: ${date} ${role === 'leader' ? '队长' : '护卫'}: ${oldValue || '空'} -> ${value || '空'}`);
+                        
+                        // 直接赋值新值
                         currentBatch.value.schedule[date][role] = value || null;
                         
                         // 如果队长和护卫都为空，则删除该日期的排期记录
@@ -1458,7 +1510,18 @@
                             delete currentBatch.value.schedule[date];
                         }
                         
+                        // 强制触发响应式更新
+                        currentBatch.value.schedule = {...currentBatch.value.schedule};
+                        
                         saveData();
+                        
+                        // 验证修改后的数据
+                        if (value) {
+                            setTimeout(() => {
+                                const verifyCount = getMemberScheduledCount(value, role);
+                                console.log(`验证: ${value} 当前已排${role === 'leader' ? '队长' : '护卫'}次数:`, verifyCount);
+                            }, 100);
+                        }
                     }
                 };
                 const deleteDaySchedule = (date) => { if(confirm(`确定清空 ${date} 的排期吗？\n（队长和护卫都将被清空）`)) { delete currentBatch.value.schedule[date]; saveData(); } };
@@ -1495,12 +1558,15 @@
                             // 清理空的排期记录（队长和护卫都为空的日期）
                             batches.value.forEach(batch => {
                                 if (batch.schedule) {
+                                    console.log(`加载批次 ${batch.name}，排期记录数:`, Object.keys(batch.schedule).length);
                                     Object.keys(batch.schedule).forEach(date => {
                                         const daySchedule = batch.schedule[date];
                                         if (!daySchedule.leader && !daySchedule.guard) {
+                                            console.log(`删除空排期记录: ${date}`);
                                             delete batch.schedule[date];
                                         }
                                     });
+                                    console.log(`清理后排期记录数:`, Object.keys(batch.schedule).length);
                                 }
                             });
                             
