@@ -26,7 +26,15 @@
         <header class="md:hidden bg-white shadow-sm border-b p-3 flex justify-between items-center z-50 fixed top-0 left-0 right-0 h-14">
             <div class="flex items-center">
                 <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2 active:scale-95 transition"><i class="fas fa-bars"></i></button>
-                <h1 class="font-bold text-gray-800 text-base"><i class="fas fa-truck-fast text-blue-600 mr-1"></i>商队排期</h1>
+                <div>
+                    <h1 class="font-bold text-gray-800 text-base"><i class="fas fa-truck-fast text-blue-600 mr-1"></i>商队排期</h1>
+                    <div class="flex items-center gap-2 text-[10px] text-gray-400 -mt-0.5">
+                        <span>v3.0.0</span>
+                        <span class="text-gray-300">|</span>
+                        <span class="text-gray-500">PEANUTS</span>
+                        <span v-if="currentVersion" class="text-purple-500 font-mono">{{ currentVersion }}</span>
+                    </div>
+                </div>
             </div>
             <div class="flex space-x-2">
                 <button @click="showCloudConfig = true" class="p-2 text-purple-600 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="云端同步"><i class="fas fa-cloud"></i></button>
@@ -38,7 +46,9 @@
         <aside :class="['bg-white shadow-lg flex flex-col z-40 transition-transform duration-300 fixed md:relative inset-y-0 left-0 w-64', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']">
             <div class="p-6 border-b border-gray-100 hidden md:block">
                 <h1 class="text-xl font-bold text-gray-800"><i class="fas fa-truck-fast text-blue-600 mr-2"></i>商队排期系统</h1>
-                <p class="text-xs text-gray-400 mt-1">v3.0.0</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <p class="text-xs text-gray-400">v3.0.0</p>
+                </div>
             </div>
             <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded"><i class="fas fa-times"></i></button>
             <nav class="flex-1 p-3 space-y-1 mt-14 md:mt-0">
@@ -64,6 +74,14 @@
                 </a>
             </nav>
             <div class="p-4 border-t border-gray-100 hidden md:block space-y-2">
+                <!-- 作者和版本信息 -->
+                <div class="mb-3 pb-3 border-b border-gray-100">
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span><i class="fas fa-code mr-1"></i>By PEANUTS</span>
+                        <span v-if="currentVersion" class="font-mono text-purple-600">{{ currentVersion }}</span>
+                    </div>
+                </div>
+                
                 <button @click="downloadJSON" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 rounded-lg hover:from-green-600 hover:to-emerald-700 transition text-sm font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-1.5">
                     <i class="fas fa-file-export"></i>
                     <span>导出备份</span>
@@ -675,7 +693,7 @@
                     syncStatus: '', 
                     loading: false, 
                     lastSyncTime: null, 
-                    uploaderName: '',
+                    uploaderName: '', // 上传者姓名（由用户输入）
                     uploaderId: '', // 用户唯一ID
                     versions: [] // 版本列表
                 });
@@ -684,6 +702,7 @@
                 const selectedCalendarDay = ref('');
                 const cloudUpdateAvailable = ref(false);
                 const cloudUpdateInfo = ref(null);
+                const currentVersion = ref(''); // 当前版本号
 
                 // URL参数管理
                 const updateURLParams = () => {
@@ -730,9 +749,17 @@
                         if(!res.ok) return;
                         
                         const data = await res.json();
-                        const cloudContent = JSON.parse(data.files['caravan_data.json']?.content || '{}');
+                        
+                        // 获取最新版本（v0）
+                        const latestFile = data.files['caravan_data_v0.json'];
+                        if (!latestFile) return;
+                        
+                        const cloudContent = JSON.parse(latestFile.content || '{}');
                         
                         if(!cloudContent.exportTime) return;
+                        
+                        // 更新当前版本号
+                        currentVersion.value = cloudContent.version || '';
                         
                         const cloudTime = new Date(cloudContent.exportTime).getTime();
                         const localTime = cloud.value.lastSyncTime ? new Date(cloud.value.lastSyncTime).getTime() : 0;
@@ -1127,7 +1154,22 @@
                 const saveData = () => localStorage.setItem('caravan_v2', JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, cloud: {token: cloud.value.token, gistId: cloud.value.gistId, lastSyncTime: cloud.value.lastSyncTime, uploaderName: cloud.value.uploaderName, uploaderId: cloud.value.uploaderId}}));
                 const loadData = () => {
                     const r = localStorage.getItem('caravan_v2');
-                    if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||''; cloud.value.lastSyncTime=d.cloud.lastSyncTime||null; cloud.value.uploaderName=d.cloud.uploaderName||''; cloud.value.uploaderId=d.cloud.uploaderId||generateUserId();} }catch(e){} }
+                    if(r) { 
+                        try{
+                            const d=JSON.parse(r); 
+                            members.value=d.members||[]; 
+                            batches.value=d.batches||[]; 
+                            currentBatchId.value=d.currentBatchId; 
+                            memberFilters.value=d.memberFilters||memberFilters.value; 
+                            if(d.cloud){
+                                cloud.value.token=d.cloud.token||''; 
+                                cloud.value.gistId=d.cloud.gistId||''; 
+                                cloud.value.lastSyncTime=d.cloud.lastSyncTime||null; 
+                                cloud.value.uploaderName=d.cloud.uploaderName||''; 
+                                cloud.value.uploaderId=d.cloud.uploaderId||generateUserId();
+                            }
+                        }catch(e){}
+                    }
                 };
                 const downloadJSON = () => {
                     const memberCount = members.value.length;
@@ -1387,7 +1429,12 @@
                         const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { headers: { 'Authorization': `token ${cloud.value.token}`, 'Accept': 'application/vnd.github.v3+json' } });
                         if(!res.ok) throw new Error('请求失败');
                         const data = await res.json();
-                        const cloudContent = JSON.parse(data.files['caravan_data.json']?.content || '{}');
+                        
+                        // 获取最新版本（v0）
+                        const latestFile = data.files['caravan_data_v0.json'];
+                        if (!latestFile) throw new Error('云端无数据');
+                        
+                        const cloudContent = JSON.parse(latestFile.content || '{}');
                         
                         const localData = { members: members.value, batches: batches.value, currentBatchId: currentBatchId.value, memberFilters: memberFilters.value };
                         const diffs = compareDataDiff(localData, cloudContent);
@@ -1623,6 +1670,7 @@
                     downloadJSON, uploadJSON, exportToExcel, importFromExcel, saveCloudConfig, syncFromCloud, syncToCloud, syncFromVersion, updateVersionsList,
                     openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay,
                     cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate,
+                    currentVersion,
                     showToast
                 };
             }
