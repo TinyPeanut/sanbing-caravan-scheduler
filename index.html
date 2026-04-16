@@ -325,7 +325,11 @@
                         <h2 class="text-lg md:text-xl font-bold">排期执行</h2>
                         <div v-if="currentBatch" class="text-xs md:text-sm text-gray-500 bg-gray-100 px-2 md:px-3 py-1 rounded-full">批次: {{ currentBatch.name }}</div>
                     </div>
-                    <div v-if="!currentBatch" class="text-center py-12 text-gray-500">⚠️ 请先在"批次与池子"中选择批次</div>
+                    <div v-if="!currentBatch" class="text-center py-12">
+                        <div class="text-6xl mb-4">📋</div>
+                        <div class="text-gray-500 text-lg mb-2">请先选择批次</div>
+                        <div class="text-gray-400 text-sm">前往“批次与池子”选择或创建批次</div>
+                    </div>
                     <div v-else class="space-y-3">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <button @click="openScheduleConfig('leader')" class="bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center touch-target active:scale-95 text-sm">👑 排期队长</button>
@@ -342,11 +346,12 @@
                                         <tr v-for="day in batchDays" :key="day.date" class="hover:bg-gray-50 border-b last:border-b-0">
                                             <td class="p-3"><div class="font-medium">{{ day.date }}</div><div class="text-xs text-gray-400">{{ day.week }}</div></td>
                                             <td class="p-3 bg-blue-50/20">
-                                                <select v-model="currentBatch.schedule[day.date].leader" 
-                                                        @change="saveData()"
-                                                        class="w-full p-1.5 border border-blue-200 rounded text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                                                        :class="{'text-gray-400': !currentBatch.schedule[day.date]?.leader}">
-                                                    <option :value="undefined" class="text-gray-400">-- 未排 --</option>
+                                                <select 
+                                                    :value="getSchedule(day.date, 'leader')" 
+                                                    @change="updateSchedule(day.date, 'leader', $event.target.value)"
+                                                    class="w-full p-1.5 border border-blue-200 rounded text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                                                    :class="{'text-gray-400': !getSchedule(day.date, 'leader')}">
+                                                    <option value="" class="text-gray-400">-- 未排 --</option>
                                                     <option v-for="m in currentBatch.leaderPool.members" :key="m.id" :value="m.id" 
                                                             :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : ''">
                                                         {{ getMemberName(m.id) }} 
@@ -356,11 +361,12 @@
                                                 </select>
                                             </td>
                                             <td class="p-3 bg-green-50/20">
-                                                <select v-model="currentBatch.schedule[day.date].guard" 
-                                                        @change="saveData()"
-                                                        class="w-full p-1.5 border border-green-200 rounded text-sm bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 cursor-pointer"
-                                                        :class="{'text-gray-400': !currentBatch.schedule[day.date]?.guard}">
-                                                    <option :value="undefined" class="text-gray-400">-- 未排 --</option>
+                                                <select 
+                                                    :value="getSchedule(day.date, 'guard')" 
+                                                    @change="updateSchedule(day.date, 'guard', $event.target.value)"
+                                                    class="w-full p-1.5 border border-green-200 rounded text-sm bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 cursor-pointer"
+                                                    :class="{'text-gray-400': !getSchedule(day.date, 'guard')}">
+                                                    <option value="" class="text-gray-400">-- 未排 --</option>
                                                     <option v-for="m in currentBatch.guardPool.members" :key="m.id" :value="m.id"
                                                             :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : ''">
                                                         {{ getMemberName(m.id) }}
@@ -393,15 +399,20 @@
                         <h2 class="text-xl font-bold text-gray-800">{{ calendarDate.getFullYear() }}年 {{ calendarDate.getMonth() + 1 }}月 排期日历</h2>
                         <button @click="changeMonth(1)" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">下月 ▶</button>
                     </div>
-                    <div v-if="!currentBatch" class="text-center py-12 text-gray-500">⚠️ 请先在“批次与池子”中选择批次</div>
+                    <div v-if="!currentBatch" class="text-center py-12">
+                        <div class="text-6xl mb-4">📋</div>
+                        <div class="text-gray-500 text-lg mb-2">请先选择批次</div>
+                        <div class="text-gray-400 text-sm">前往“批次与池子”选择或创建批次</div>
+                    </div>
                     <div v-else>
                         <!-- PC端紧凑布局 -->
                         <div class="hidden md:grid grid-cols-7 gap-2">
                             <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
                             <div v-for="(day, idx) in calendarDays" :key="idx" 
-                                 class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md"
+                                 @click="day.currentMonth && day.dateStr ? openCalendarDayDetail(day.dateStr) : null"
+                                 class="border rounded-lg p-2 min-h-[90px] flex flex-col relative transition hover:shadow-md cursor-pointer"
                                  :class="[
-                                     day.currentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400',
+                                     day.currentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 text-gray-400',
                                      day.isToday ? 'ring-2 ring-blue-500' : ''
                                  ]">
                                 <span class="text-xs font-medium mb-1">{{ day.date }}</span>
@@ -443,7 +454,11 @@
 
             <!-- 统计分析 -->
             <div v-if="currentView === 'stats'" class="max-w-6xl mx-auto space-y-4">
-                <div v-if="!currentBatch" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">请先选择批次</div>
+                <div v-if="!currentBatch" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-500">
+                    <div class="text-6xl mb-4">📊</div>
+                    <div class="text-lg mb-2">请先选择批次</div>
+                    <div class="text-sm text-gray-400">前往“批次与池子”选择或创建批次</div>
+                </div>
                 <div v-else class="space-y-4">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <div class="bg-white p-3 rounded-xl shadow-sm"><div class="text-xs text-gray-500">总天数</div><div class="text-xl md:text-2xl font-bold">{{ batchDays.length }}</div></div>
@@ -1286,7 +1301,13 @@
                     currentBatchId.value = batches.value[batches.value.length-1].id;
                     initCurrentMonthDates(); saveData();
                 };
-                const deleteBatch = (id) => { if(confirm('删除批次？')) { batches.value = batches.value.filter(b => b.id !== id); if(currentBatchId.value===id) currentBatchId.value=null; saveData(); } };
+                const deleteBatch = (id) => { 
+                    if(confirm('删除批次？')) { 
+                        batches.value = batches.value.filter(b => b.id !== id); 
+                        if(currentBatchId.value===id) currentBatchId.value=null; 
+                        saveData(); 
+                    } 
+                };
                 const getBatchDaysCount = (b) => Math.floor((getLocalDateString(b.end) - getLocalDateString(b.start)) / 86400000) + 1;
 
                 const openMemberSelector = (batch, role) => {
@@ -1391,6 +1412,14 @@
                         saveData(); showEditModal.value=false;
                     }
                 };
+                // 直接更新排期（用于下拉框）
+                const updateSchedule = (date, role, value) => {
+                    if(currentBatch.value) {
+                        if(!currentBatch.value.schedule[date]) currentBatch.value.schedule[date]={};
+                        currentBatch.value.schedule[date][role] = value || null;
+                        saveData();
+                    }
+                };
                 const deleteDaySchedule = (date) => { if(confirm(`确定清空 ${date} 的排期吗？\n（队长和护卫都将被清空）`)) { delete currentBatch.value.schedule[date]; saveData(); } };
                 const clearAllSchedule = () => { if(confirm('清空所有排期？')) { currentBatch.value.schedule={}; saveData(); } };
 
@@ -1431,7 +1460,10 @@
                                 cloud.value.uploaderName=d.cloud.uploaderName||''; 
                                 cloud.value.uploaderId=d.cloud.uploaderId||generateUserId();
                             }
-                        }catch(e){}
+                        }catch(e){
+                            console.error('数据加载失败:', e);
+                            showToast('❌ 数据加载失败，已重置', 'error');
+                        }
                     }
                 };
                 const downloadJSON = () => {
@@ -1934,7 +1966,7 @@
                     createBatch, deleteBatch, getBatchDaysCount,
                     openMemberSelector, closeMemberModal, resetModalFilters, isMemberInPool, getCurrentPoolMember, toggleMemberSelection, selectAllFiltered, selectTopN, confirmMemberSelection,
                     openScheduleConfig, closeScheduleConfigModal, resetScheduleDateRange, previewSchedule, confirmSchedule,
-                    getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, isMemberOverLimit, openManualEdit, confirmManualEdit, deleteDaySchedule, clearAllSchedule,
+                    getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, getMemberScheduledCount, isMemberOverLimit, openManualEdit, confirmManualEdit, updateSchedule, deleteDaySchedule, clearAllSchedule,
                     getRoleScheduledCount, getOverLimitCount, getPoolStats,
                     downloadJSON, uploadJSON, exportToExcel, importFromExcel, saveCloudConfig, syncFromCloud, syncToCloud, syncFromVersion, updateVersionsList,
                     openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay,
