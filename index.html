@@ -826,8 +826,13 @@
                 };
                 
                 // 更新版本列表
-                const updateVersionsList = async () => {
+                const updateVersionsList = async (showLoading = true) => {
                     if(!cloud.value.token || !cloud.value.gistId) return [];
+                    
+                    if (showLoading) {
+                        cloud.value.loading = true;
+                        cloud.value.syncStatus = '正在获取版本列表...';
+                    }
                     
                     try {
                         const res = await fetch(`https://api.github.com/gists/${cloud.value.gistId}`, { 
@@ -836,7 +841,7 @@
                                 'Accept': 'application/vnd.github.v3+json' 
                             } 
                         });
-                        if(!res.ok) return [];
+                        if(!res.ok) throw new Error('请求失败');
                         
                         const data = await res.json();
                         const versions = [];
@@ -866,10 +871,22 @@
                         // 按时间戳排序，最新的在前面
                         versions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         cloud.value.versions = versions;
+                        
+                        if (showLoading) {
+                            cloud.value.syncStatus = '';
+                        }
+                        
                         return versions;
                     } catch (e) {
                         console.error('获取版本列表失败:', e);
+                        if (showLoading) {
+                            cloud.value.syncStatus = `❌ 获取版本列表失败: ${e.message}`;
+                        }
                         return [];
+                    } finally {
+                        if (showLoading) {
+                            cloud.value.loading = false;
+                        }
                     }
                 };
 
@@ -973,6 +990,24 @@
                         updateURLParams();
                     }
                 }, { deep: true });
+                
+                // 监听云同步弹窗打开，自动刷新版本列表
+                watch(showCloudConfig, async (newValue) => {
+                    if (newValue && cloud.value.token && cloud.value.gistId) {
+                        // 弹窗打开时自动刷新版本列表（不显示loading，避免闪烁）
+                        await updateVersionsList(false);
+                    }
+                });
+                
+                // 监听页面可见性变化，切回前台时刷新
+                onMounted(() => {
+                    document.addEventListener('visibilitychange', async () => {
+                        if (document.visibilityState === 'visible' && showCloudConfig.value && cloud.value.token && cloud.value.gistId) {
+                            // 页面从后台切回前台，且云同步弹窗打开时，刷新版本列表
+                            await updateVersionsList(true);
+                        }
+                    });
+                });
 
                 const parseImport = () => {
                     const lines = importText.value.trim().split('\n');
