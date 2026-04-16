@@ -42,7 +42,12 @@
                 </div>
             </div>
             <div class="flex space-x-2">
-                <button @click="showCloudConfig = true" class="p-2 text-purple-600 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="云端同步"><i class="fas fa-cloud"></i></button>
+                <button @click="showCloudConfig = true" 
+                        class="p-2 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md"
+                        :class="cloud.token && cloud.gistId ? 'text-purple-600 bg-gradient-to-br from-purple-50 to-indigo-50' : 'text-gray-400 bg-gray-100'"
+                        :title="cloud.token && cloud.gistId ? '云端同步' : '点击配置云端同步'">
+                    <i class="fas fa-cloud"></i>
+                </button>
                 <button @click="downloadJSON" class="p-2 text-emerald-600 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="导出备份"><i class="fas fa-download"></i></button>
                 <label class="p-2 text-gray-600 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg cursor-pointer active:scale-95 transition shadow-sm hover:shadow-md" title="导入备份"><i class="fas fa-upload"></i> <input type="file" @change="uploadJSON" accept=".json" class="hidden"></label>
             </div>
@@ -101,16 +106,19 @@
                     <span>导入备份</span>
                     <input type="file" @change="uploadJSON" accept=".json" class="hidden">
                 </label>
-                <button @click="showCloudConfig = true" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-2.5 rounded-lg hover:from-purple-600 hover:to-indigo-700 transition text-sm font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-1.5">
+                <button @click="showCloudConfig = true" 
+                        class="w-full py-2.5 rounded-lg transition text-sm font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
+                        :class="cloud.token && cloud.gistId ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700' : 'bg-gray-300 text-gray-600 hover:bg-gray-400'"
+                        :title="cloud.token && cloud.gistId ? '' : '点击配置云端同步'">
                     <i class="fas fa-cloud-arrow-up"></i>
-                    <span>云端同步</span>
+                    <span>{{ cloud.token && cloud.gistId ? '云端同步' : '配置云同步' }}</span>
                 </button>
             </div>
         </aside>
         <div v-if="mobileMenuOpen" @click="mobileMenuOpen = false" class="fixed inset-0 bg-black bg-opacity-40 z-30 md:hidden"></div>
 
         <!-- 云端更新悬浮提示 -->
-        <div v-if="cloudUpdateAvailable && cloudUpdateInfo" 
+        <div v-if="cloudUpdateAvailable && cloudUpdateInfo && cloud.token && cloud.gistId" 
              class="fixed top-16 right-4 md:right-8 z-40 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-xs animate-bounce cursor-pointer"
              @click="handleCloudUpdate">
             <div class="flex items-start gap-3">
@@ -605,16 +613,32 @@
                 </div>
                 
                 <div class="p-6 border-t bg-gray-50 rounded-b-xl">
-                    <div class="flex justify-between items-center">
+                    <!-- 未配置提示 -->
+                    <div v-if="!cloud.token || !cloud.gistId" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-info-circle text-yellow-600 mt-0.5"></i>
+                            <div class="text-sm text-yellow-800">
+                                <div class="font-medium mb-1">💡 提示</div>
+                                <div>您还未配置云端同步。请先填写上方的 <strong>GitHub Token</strong> 和 <strong>Gist ID</strong>，然后点击“保存配置”。</div>
+                                <div class="mt-2 text-xs text-yellow-700">如果不使用云同步，可以直接关闭此窗口，使用本地导出/导入功能备份数据。</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
                         <button @click="showCloudConfig = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">关闭</button>
-                        <div class="flex gap-2">
+                        <div class="flex flex-col sm:flex-row gap-2">
                             <button @click="saveCloudConfig" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 touch-target">
                                 <i class="fas fa-floppy-disk mr-1"></i>保存配置
                             </button>
-                            <button @click="syncFromCloud" :disabled="cloud.loading" class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded hover:from-green-600 hover:to-emerald-700 touch-target disabled:opacity-50 shadow-sm">
+                            <button @click="syncFromCloud" :disabled="cloud.loading || !cloud.token || !cloud.gistId" 
+                                    class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded hover:from-green-600 hover:to-emerald-700 touch-target disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                    :title="!cloud.token || !cloud.gistId ? '请先配置 Token 和 Gist ID' : ''">
                                 <i class="fas fa-download mr-1"></i>下载最新
                             </button>
-                            <button @click="syncToCloud" :disabled="cloud.loading" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded hover:from-blue-600 hover:to-indigo-700 touch-target disabled:opacity-50 shadow-sm">
+                            <button @click="syncToCloud" :disabled="cloud.loading || !cloud.token || !cloud.gistId" 
+                                    class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded hover:from-blue-600 hover:to-indigo-700 touch-target disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                    :title="!cloud.token || !cloud.gistId ? '请先配置 Token 和 Gist ID' : ''">
                                 <i class="fas fa-upload mr-1"></i>上传新版本
                             </button>
                         </div>
