@@ -1488,6 +1488,19 @@
                                 equipmentAttribute: m.equipmentAttribute !== undefined ? m.equipmentAttribute : 100
                             }));
                             batches.value=d.batches||[]; 
+                            
+                            // 清理空的排期记录（队长和护卫都为空的日期）
+                            batches.value.forEach(batch => {
+                                if (batch.schedule) {
+                                    Object.keys(batch.schedule).forEach(date => {
+                                        const daySchedule = batch.schedule[date];
+                                        if (!daySchedule.leader && !daySchedule.guard) {
+                                            delete batch.schedule[date];
+                                        }
+                                    });
+                                }
+                            });
+                            
                             currentBatchId.value=d.currentBatchId; 
                             memberFilters.value=d.memberFilters||memberFilters.value; 
                             if(d.cloud){
