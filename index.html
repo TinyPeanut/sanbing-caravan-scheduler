@@ -878,12 +878,88 @@
                     if(r) { try{const d=JSON.parse(r); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; if(d.cloud){cloud.value.token=d.cloud.token||''; cloud.value.gistId=d.cloud.gistId||''; cloud.value.lastSyncTime=d.cloud.lastSyncTime||null; cloud.value.uploaderName=d.cloud.uploaderName||'';} }catch(e){} }
                 };
                 const downloadJSON = () => {
+                    const memberCount = members.value.length;
+                    const batchCount = batches.value.length;
+                    const scheduleCount = Object.values(batches.value.reduce((acc,b)=>({...acc,...b.schedule}),{})).filter(s=>s.leader||s.guard).length;
+                    
+                    const confirmMsg = `📦 导出备份\n\n` +
+                        `成员数: ${memberCount}\n` +
+                        `批次数: ${batchCount}\n` +
+                        `排期数: ${scheduleCount}\n\n` +
+                        `确定要导出备份文件吗？`;
+                    
+                    if(!confirm(confirmMsg)) return;
+                    
                     const blob = new Blob([JSON.stringify({members:members.value, batches:batches.value, currentBatchId:currentBatchId.value, memberFilters:memberFilters.value, exportTime:new Date().toISOString(), version: generateVersion()}, null, 2)], {type:'application/json'});
-                    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`caravan_${fmtDate(new Date())}.json`; a.click();
+                    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`caravan_backup_${fmtDate(new Date())}.json`; a.click();
+                    
+                    // 显示成功提示
+                    showToast(`✅ 已导出 ${memberCount}个成员, ${batchCount}个批次`);
                 };
                 const uploadJSON = (e) => {
                     const f=e.target.files[0]; if(!f) return;
-                    const r=new FileReader(); r.onload=ev=>{ try{const d=JSON.parse(ev.target.result); members.value=d.members||[]; batches.value=d.batches||[]; currentBatchId.value=d.currentBatchId; memberFilters.value=d.memberFilters||memberFilters.value; saveData(); alert('导入成功');}catch(err){alert('格式错误');} }; r.readAsText(f);
+                    const r=new FileReader(); 
+                    r.onload=ev=>{ 
+                        try{
+                            const d=JSON.parse(ev.target.result);
+                            
+                            // 数据预览和对比
+                            const newMemberCount = (d.members||[]).length;
+                            const newBatchCount = (d.batches||[]).length;
+                            const oldMemberCount = members.value.length;
+                            const oldBatchCount = batches.value.length;
+                            
+                            let confirmMsg = `📂 导入备份\n\n`;
+                            confirmMsg += `📊 数据统计:\n`;
+                            confirmMsg += `  • 成员: ${oldMemberCount} → ${newMemberCount}\n`;
+                            confirmMsg += `  • 批次: ${oldBatchCount} → ${newBatchCount}\n\n`;
+                            
+                            if(d.exportTime) {
+                                const exportDate = new Date(d.exportTime).toLocaleString('zh-CN');
+                                confirmMsg += `📅 导出时间: ${exportDate}\n`;
+                            }
+                            if(d.version) {
+                                confirmMsg += `🔖 版本号: ${d.version}\n\n`;
+                            }
+                            
+                            confirmMsg += `⚠️ 注意：这将覆盖当前所有数据！\n\n`;
+                            confirmMsg += `确定要导入此备份文件吗？`;
+                            
+                            if(!confirm(confirmMsg)) {
+                                e.target.value = ''; // 清空文件选择
+                                return;
+                            }
+                            
+                            // 执行导入
+                            members.value=d.members||[]; 
+                            batches.value=d.batches||[]; 
+                            currentBatchId.value=d.currentBatchId; 
+                            memberFilters.value=d.memberFilters||memberFilters.value; 
+                            saveData(); 
+                            
+                            showToast(`✅ 导入成功！${newMemberCount}个成员, ${newBatchCount}个批次`);
+                            
+                        }catch(err){
+                            showToast(`❌ 导入失败：文件格式错误`, 'error');
+                        }
+                        e.target.value = ''; // 清空文件选择，允许重复导入同一文件
+                    }; 
+                    r.readAsText(f);
+                };
+
+                // Toast提示功能
+                const showToast = (message, type = 'success') => {
+                    const toast = document.createElement('div');
+                    toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg text-white text-sm font-medium animate-bounce`;
+                    toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transition = 'opacity 0.3s';
+                        setTimeout(() => toast.remove(), 300);
+                    }, 2500);
                 };
 
                 const generateVersion = () => {
@@ -1051,7 +1127,8 @@
                     getRoleScheduledCount, getOverLimitCount, getPoolStats,
                     downloadJSON, uploadJSON, saveCloudConfig, syncFromCloud, syncToCloud,
                     openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay,
-                    cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate
+                    cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate,
+                    showToast
                 };
             }
         }).mount('#app');
