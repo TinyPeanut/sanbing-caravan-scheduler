@@ -28,6 +28,7 @@
                 <h1 class="font-bold text-gray-800 text-lg">🚚 商队排期</h1>
             </div>
             <div class="flex space-x-2">
+                <button @click="showCloudConfig = true" class="p-2 text-purple-600 bg-purple-50 rounded-lg">☁️</button>
                 <button @click="downloadJSON" class="p-2 text-green-600 bg-green-50 rounded-lg">💾</button>
                 <label class="p-2 text-gray-600 bg-gray-100 rounded-lg cursor-pointer">📂 <input type="file" @change="uploadJSON" accept=".json" class="hidden"></label>
             </div>
