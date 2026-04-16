@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body { font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
@@ -24,56 +25,56 @@
     <div id="app" class="flex h-screen overflow-hidden bg-gray-50">
         <header class="md:hidden bg-white shadow-sm border-b p-3 flex justify-between items-center z-50 fixed top-0 left-0 right-0 h-14">
             <div class="flex items-center">
-                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2 active:scale-95 transition">☰</button>
-                <h1 class="font-bold text-gray-800 text-base">🚚 商队排期</h1>
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2 active:scale-95 transition"><i class="fas fa-bars"></i></button>
+                <h1 class="font-bold text-gray-800 text-base"><i class="fas fa-truck-fast text-blue-600 mr-1"></i>商队排期</h1>
             </div>
             <div class="flex space-x-2">
-                <button @click="showCloudConfig = true" class="p-2 text-purple-600 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="云端同步">☁️</button>
-                <button @click="downloadJSON" class="p-2 text-emerald-600 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="导出备份">💾</button>
-                <label class="p-2 text-gray-600 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg cursor-pointer active:scale-95 transition shadow-sm hover:shadow-md" title="导入备份">📂 <input type="file" @change="uploadJSON" accept=".json" class="hidden"></label>
+                <button @click="showCloudConfig = true" class="p-2 text-purple-600 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="云端同步"><i class="fas fa-cloud"></i></button>
+                <button @click="downloadJSON" class="p-2 text-emerald-600 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg active:scale-95 transition shadow-sm hover:shadow-md" title="导出备份"><i class="fas fa-download"></i></button>
+                <label class="p-2 text-gray-600 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg cursor-pointer active:scale-95 transition shadow-sm hover:shadow-md" title="导入备份"><i class="fas fa-upload"></i> <input type="file" @change="uploadJSON" accept=".json" class="hidden"></label>
             </div>
         </header>
 
         <aside :class="['bg-white shadow-lg flex flex-col z-40 transition-transform duration-300 fixed md:relative inset-y-0 left-0 w-64', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']">
             <div class="p-6 border-b border-gray-100 hidden md:block">
-                <h1 class="text-xl font-bold text-gray-800">🚚 商队排期系统</h1>
+                <h1 class="text-xl font-bold text-gray-800"><i class="fas fa-truck-fast text-blue-600 mr-2"></i>商队排期系统</h1>
                 <p class="text-xs text-gray-400 mt-1">v2.6.0</p>
             </div>
-            <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded">✕</button>
+            <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded"><i class="fas fa-times"></i></button>
             <nav class="flex-1 p-3 space-y-1 mt-14 md:mt-0">
                 <a @click="currentView = 'members'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition active:scale-98', currentView === 'members' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50']">
-                    <span class="text-xl mr-2">👥</span>
+                    <i class="fas fa-users text-xl mr-2"></i>
                     <span>人员管理</span>
                 </a>
                 <a @click="currentView = 'batches'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition active:scale-98', currentView === 'batches' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50']">
-                    <span class="text-xl mr-2">📅</span>
+                    <i class="fas fa-layer-group text-xl mr-2"></i>
                     <span>批次与池子</span>
                 </a>
                 <a @click="currentView = 'schedule'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition active:scale-98', currentView === 'schedule' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50']">
-                    <span class="text-xl mr-2">🚛</span>
+                    <i class="fas fa-calendar-check text-xl mr-2"></i>
                     <span>排期管理</span>
                 </a>
                 <a @click="currentView = 'calendar'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition active:scale-98', currentView === 'calendar' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50']">
-                    <span class="text-xl mr-2">🗓️</span>
+                    <i class="fas fa-calendar-days text-xl mr-2"></i>
                     <span>日历视图</span>
                 </a>
                 <a @click="currentView = 'stats'; mobileMenuOpen = false" :class="['flex items-center p-3 rounded-lg cursor-pointer transition active:scale-98', currentView === 'stats' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50']">
-                    <span class="text-xl mr-2">📊</span>
+                    <i class="fas fa-chart-pie text-xl mr-2"></i>
                     <span>统计分析</span>
                 </a>
             </nav>
             <div class="p-4 border-t border-gray-100 hidden md:block space-y-2">
                 <button @click="downloadJSON" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2.5 rounded-lg hover:from-green-600 hover:to-emerald-700 transition text-sm font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-1.5">
-                    <span>💾</span>
+                    <i class="fas fa-file-export"></i>
                     <span>导出备份</span>
                 </button>
                 <label class="w-full bg-gradient-to-r from-gray-500 to-gray-600 text-white py-2.5 rounded-lg hover:from-gray-600 hover:to-gray-700 transition text-sm font-medium flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md gap-1.5">
-                    <span>📂</span>
+                    <i class="fas fa-file-import"></i>
                     <span>导入备份</span>
                     <input type="file" @change="uploadJSON" accept=".json" class="hidden">
                 </label>
                 <button @click="showCloudConfig = true" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-2.5 rounded-lg hover:from-purple-600 hover:to-indigo-700 transition text-sm font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-1.5">
-                    <span>☁️</span>
+                    <i class="fas fa-cloud-arrow-up"></i>
                     <span>云端同步</span>
                 </button>
             </div>
@@ -85,14 +86,14 @@
              class="fixed top-16 right-4 md:right-8 z-40 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-3 rounded-lg shadow-lg max-w-xs animate-bounce cursor-pointer"
              @click="handleCloudUpdate">
             <div class="flex items-start gap-3">
-                <div class="text-2xl">☁️</div>
+                <div class="text-2xl"><i class="fas fa-cloud-arrow-down"></i></div>
                 <div class="flex-1">
                     <div class="font-bold text-sm mb-1">云端有更新</div>
                     <div class="text-xs opacity-90">上传者: {{ cloudUpdateInfo.uploader }}</div>
                     <div class="text-xs opacity-90">{{ cloudUpdateInfo.updateTime }}</div>
                     <div class="text-xs mt-1.5 font-medium underline">点击更新 →</div>
                 </div>
-                <button @click.stop="dismissCloudUpdate" class="text-white opacity-70 hover:opacity-100 text-lg leading-none">✕</button>
+                <button @click.stop="dismissCloudUpdate" class="text-white opacity-70 hover:opacity-100 text-lg leading-none"><i class="fas fa-times"></i></button>
             </div>
         </div>
 
@@ -102,11 +103,11 @@
                 <div class="bg-white rounded-xl shadow-sm p-3 md:p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-                            <span class="text-2xl">👥</span>
+                            <i class="fas fa-users text-2xl text-blue-600"></i>
                             <span>人员管理</span>
                         </h2>
                         <button @click="openAddPersonModal" class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition shadow-md hover:shadow-lg text-sm font-medium active:scale-95 flex items-center gap-1.5">
-                            <span>✨</span>
+                            <i class="fas fa-user-plus"></i>
                             <span>新增人员</span>
                         </button>
                     </div>
@@ -114,17 +115,17 @@
                     <!-- 游戏数据导入区 -->
                     <div class="mb-4">
                         <label class="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1.5">
-                            <span>📋</span>
+                            <i class="fas fa-paste text-blue-500"></i>
                             <span>游戏数据导入</span>
                         </label>
                         <textarea v-model="importText" rows="3" class="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-xs text-gray-700 bg-gray-50 transition" placeholder="粘贴游戏导出的表格文本（含表头）..."></textarea>
                         <div class="flex gap-2 mt-2">
                             <button @click="parseImport" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-medium touch-target active:scale-95 shadow-sm hover:shadow-md flex items-center justify-center gap-1.5">
-                                <span>🔍</span>
+                                <i class="fas fa-search"></i>
                                 <span>解析预览</span>
                             </button>
                             <button @click="importText = ''" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition touch-target active:scale-95 flex items-center justify-center gap-1.5">
-                                <span>🗑️</span>
+                                <i class="fas fa-trash-can"></i>
                                 <span>清空</span>
                             </button>
                         </div>
@@ -133,18 +134,18 @@
                     <!-- Excel批量编辑区 -->
                     <div class="pt-4 border-t border-gray-200">
                         <label class="text-sm font-medium text-gray-700 mb-3 block flex items-center gap-1.5">
-                            <span>📊</span>
+                            <i class="fas fa-file-excel text-green-600"></i>
                             <span>Excel批量编辑</span>
                             <span class="text-xs text-gray-400 font-normal">（适合批量修改权重）</span>
                         </label>
                         <div class="grid grid-cols-2 gap-3">
                             <button @click="exportToExcel" class="group px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition font-medium touch-target active:scale-95 shadow-sm hover:shadow-md flex flex-col items-center gap-1.5">
-                                <span class="text-2xl group-hover:scale-110 transition-transform">📤</span>
+                                <i class="fas fa-file-export text-2xl group-hover:scale-110 transition-transform"></i>
                                 <span class="text-sm font-medium">导出Excel</span>
                                 <span class="text-xs opacity-80">下载CSV文件</span>
                             </button>
                             <label class="group px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition font-medium touch-target active:scale-95 shadow-sm hover:shadow-md flex flex-col items-center gap-1.5 cursor-pointer">
-                                <span class="text-2xl group-hover:scale-110 transition-transform">📥</span>
+                                <i class="fas fa-file-import text-2xl group-hover:scale-110 transition-transform"></i>
                                 <span class="text-sm font-medium">导入Excel</span>
                                 <span class="text-xs opacity-80">上传CSV文件</span>
                                 <input type="file" @change="importFromExcel" accept=".csv,.xlsx,.xls" class="hidden">
@@ -155,11 +156,11 @@
                 <div v-if="parsedData.length > 0" class="bg-white rounded-xl shadow-sm p-3 md:p-6 border-l-4 border-green-500">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="text-base md:text-lg font-semibold flex items-center gap-2">
-                            <span class="text-xl">🔍</span>
+                            <i class="fas fa-eye text-xl text-green-600"></i>
                             <span>预览结果 ({{ parsedData.length }} 条)</span>
                         </h3>
                         <button @click="confirmImport" class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition font-medium touch-target active:scale-95 shadow-md flex items-center gap-1.5">
-                            <span>✅</span>
+                            <i class="fas fa-check-circle"></i>
                             <span>确认导入</span>
                         </button>
                     </div>
@@ -180,11 +181,11 @@
                 <div class="bg-white rounded-xl shadow-sm p-3 md:p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-base md:text-lg font-semibold flex items-center gap-2">
-                            <span class="text-xl">👥</span>
+                            <i class="fas fa-users text-xl text-blue-600"></i>
                             <span>现有成员 ({{ filteredMembers.length }})</span>
                         </h3>
                         <button @click="clearAllMembers" class="text-red-500 text-xs md:text-sm hover:underline active:opacity-70 flex items-center gap-1">
-                            <span>🗑️</span>
+                            <i class="fas fa-trash-can"></i>
                             <span>清空所有</span>
                         </button>
                     </div>
