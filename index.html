@@ -37,7 +37,7 @@
         <aside :class="['bg-white shadow-lg flex flex-col z-40 transition-transform duration-300 fixed md:relative inset-y-0 left-0 w-64', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0']">
             <div class="p-6 border-b border-gray-100 hidden md:block">
                 <h1 class="text-xl font-bold text-gray-800">🚚 商队排期系统</h1>
-                <p class="text-xs text-gray-400 mt-1">v2.4.0 | 稳定版</p>
+                <p class="text-xs text-gray-400 mt-1">v2.4.0</p>
             </div>
             <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded">✕</button>
             <nav class="flex-1 p-3 space-y-1 mt-14 md:mt-0">
@@ -326,13 +326,14 @@
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
                 <div class="p-4 border-b flex justify-between items-center"><h3 class="font-bold">{{ memberModalTitle }}</h3><button @click="closeMemberModal" class="text-gray-500 text-xl">✕</button></div>
                 <div class="p-4 border-b bg-gray-50 flex flex-wrap gap-3 items-end">
-                    <div class="flex-1 min-w-[140px]"><label class="text-xs font-medium text-gray-500 block mb-1">名称</label><input v-model="memberModalFilters.name" placeholder="支持模糊" class="w-full p-2 border rounded text-sm"></div>
-                    <div class="w-24"><label class="text-xs font-medium text-gray-500 block mb-1">最小阶级</label><input v-model.number="memberModalFilters.minClass" placeholder="如: 3" class="w-full p-2 border rounded text-sm"></div>
-                    <div class="w-32"><label class="text-xs font-medium text-gray-500 block mb-1">最小战力</label><input v-model.number="memberModalFilters.minPower" placeholder="如: 10000" class="w-full p-2 border rounded text-sm"></div>
-                    <div class="w-24"><button @click="resetModalFilters" class="w-full p-2 bg-gray-200 rounded text-sm hover:bg-gray-300 touch-target">重置</button></div>
+                    <div class="flex-1 min-w-[120px]"><label class="text-xs font-medium text-gray-500 block mb-1">名称</label><input v-model="memberModalFilters.name" placeholder="支持模糊" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="w-20"><label class="text-xs font-medium text-gray-500 block mb-1">最小阶级</label><input v-model.number="memberModalFilters.minClass" placeholder="如: 3" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="w-28"><label class="text-xs font-medium text-gray-500 block mb-1">最小战力</label><input v-model.number="memberModalFilters.minPower" placeholder="如: 10000" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="flex-1 min-w-[120px]"><label class="text-xs font-medium text-gray-500 block mb-1">排序方式</label><select v-model="memberModalFilters.sortBy" class="w-full p-2 border rounded text-sm"><option value="power_desc">战力降序</option><option value="power_asc">战力升序</option><option value="class_desc">阶级降序</option><option value="class_asc">阶级升序</option><option value="furnace_desc">火炉降序</option><option value="furnace_asc">火炉升序</option><option value="weekMerit_desc">周功勋降序</option><option value="weekMerit_asc">周功勋升序</option><option value="totalMerit_desc">总功勋降序</option><option value="totalMerit_asc">总功勋升序</option><option value="weekDonation_desc">周捐献降序</option><option value="weekDonation_asc">周捐献升序</option></select></div>
+                    <div class="w-20"><button @click="resetModalFilters" class="w-full p-2 bg-gray-200 rounded text-sm hover:bg-gray-300 touch-target active:scale-95">重置</button></div>
                     <div class="flex items-center gap-2 bg-white border rounded px-2 py-1">
                         <input v-model.number="topNCount" type="number" min="1" class="w-12 p-1 border rounded text-center text-sm" placeholder="N">
-                        <button @click="selectTopN" class="px-3 py-1.5 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200 touch-target">战力前N</button>
+                        <button @click="selectTopN" class="px-3 py-1.5 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200 touch-target active:scale-95">TOP N</button>
                     </div>
                 </div>
                 <div class="p-4 flex-1 overflow-y-auto">
@@ -507,7 +508,7 @@
                 
                 const showMemberModal = ref(false);
                 const memberModalTitle = ref('');
-                const memberModalFilters = ref({ name: '', minClass: 0, minPower: 0 });
+                const memberModalFilters = ref({ name: '', minClass: 0, minPower: 0, sortBy: 'power_desc' });
                 const memberModalTargetBatch = ref(null);
                 const memberModalTargetRole = ref('');
                 const topNCount = ref(5);
@@ -680,6 +681,11 @@
                     if (memberModalFilters.value.name) res = res.filter(m => m.name.includes(memberModalFilters.value.name));
                     if (memberModalFilters.value.minClass) res = res.filter(m => m.class >= memberModalFilters.value.minClass);
                     if (memberModalFilters.value.minPower) res = res.filter(m => m.power >= memberModalFilters.value.minPower);
+                    
+                    // 添加排序逻辑
+                    const [field, order] = memberModalFilters.value.sortBy.split('_');
+                    res.sort((a, b) => order === 'desc' ? (b[field]||0) - (a[field]||0) : (a[field]||0) - (b[field]||0));
+                    
                     return res;
                 });
                 const currentPoolMembers = computed(() => {
@@ -766,7 +772,7 @@
                     showMemberModal.value = true;
                 };
                 const closeMemberModal = () => { showMemberModal.value = false; memberModalTargetBatch.value = null; };
-                const resetModalFilters = () => { memberModalFilters.value = { name: '', minClass: 0, minPower: 0 }; };
+                const resetModalFilters = () => { memberModalFilters.value = { name: '', minClass: 0, minPower: 0, sortBy: 'power_desc' }; };
                 const isMemberInPool = (id) => currentPoolMembers.value.some(m => m.id === id);
                 const getCurrentPoolMember = (id) => currentPoolMembers.value.find(m => m.id === id);
                 const toggleMemberSelection = (id) => {
@@ -780,7 +786,8 @@
                 };
                 const selectTopN = () => {
                     const pool = memberModalTargetRole.value === 'leader' ? memberModalTargetBatch.value.leaderPool : memberModalTargetBatch.value.guardPool;
-                    const sorted = [...filteredMembersForModal.value].sort((a,b) => b.power - a.power).slice(0, topNCount.value);
+                    // 根据当前排序方式选取前N个
+                    const sorted = [...filteredMembersForModal.value].slice(0, topNCount.value);
                     sorted.forEach(m => { if(!pool.members.find(p=>p.id===m.id)) pool.members.push({id:m.id, maxTimes:1}); });
                 };
                 const confirmMemberSelection = () => { saveData(); closeMemberModal(); };
