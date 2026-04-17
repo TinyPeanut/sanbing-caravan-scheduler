@@ -24,22 +24,21 @@
 <body>
     <div id="app" class="flex h-screen overflow-hidden bg-gray-50">
         <header class="md:hidden bg-white shadow-sm border-b p-3 flex justify-between items-center z-50 fixed top-0 left-0 right-0 h-14">
-            <div class="flex items-center">
-                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2 active:scale-95 transition"><i class="fas fa-bars"></i></button>
-                <div>
-                    <h1 class="font-bold text-gray-800 text-base"><i class="fas fa-truck-fast text-blue-600 mr-1"></i>商队排期</h1>
-                    <div class="flex flex-col gap-0.5 text-[10px] -mt-0.5">
-                        <div v-if="cloud.uploaderName" class="flex items-center gap-1.5 text-gray-500">
+            <div class="flex items-center min-w-0 flex-1">
+                <button @click="mobileMenuOpen = !mobileMenuOpen" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg mr-2 active:scale-95 transition flex-shrink-0"><i class="fas fa-bars"></i></button>
+                <div class="min-w-0 flex-1">
+                    <h1 class="font-bold text-gray-800 text-base truncate"><i class="fas fa-truck-fast text-blue-600 mr-1"></i>商队排期</h1>
+                    <div class="flex items-center gap-2 text-[10px] mt-0.5 overflow-hidden">
+                        <div v-if="cloud.uploaderName" class="flex items-center gap-1 text-gray-500 flex-shrink-0">
                             <i class="fas fa-user text-green-500"></i>
-                            <span>{{ cloud.uploaderName }}</span>
+                            <span class="truncate max-w-[80px]">{{ cloud.uploaderName }}</span>
                         </div>
-                        <div v-else class="flex items-center gap-1.5 text-gray-400">
+                        <div v-else class="flex items-center gap-1 text-gray-400 flex-shrink-0">
                             <i class="fas fa-user-circle text-gray-400"></i>
-                            <span>未设置昵称</span>
+                            <span>未设置</span>
                         </div>
-                        <div v-if="currentVersion" class="flex items-center gap-1.5">
+                        <div v-if="currentVersion" class="flex items-center gap-1 text-gray-500 flex-shrink-0 ml-auto">
                             <i class="fas fa-archive text-purple-500"></i>
-                            <span class="text-gray-500">存档:</span>
                             <span class="text-purple-600 font-mono font-medium">{{ currentVersion }}</span>
                         </div>
                     </div>
@@ -410,10 +409,27 @@
             <!-- 日历视图 -->
             <div v-if="currentView === 'calendar'" class="max-w-6xl mx-auto space-y-6">
                 <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <button @click="changeMonth(-1)" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">◀ 上月</button>
-                        <h2 class="text-xl font-bold text-gray-800">{{ calendarDate.getFullYear() }}年 {{ calendarDate.getMonth() + 1 }}月 排期日历</h2>
-                        <button @click="changeMonth(1)" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">下月 ▶</button>
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <button @click="changeMonth(-1)" class="px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition font-medium shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1.5">
+                                <i class="fas fa-chevron-left text-sm"></i>
+                                <span class="hidden sm:inline">上月</span>
+                            </button>
+                            <button @click="resetToBatchMonth" v-if="currentBatch && (calendarDate.getFullYear() !== new Date(currentBatch.start).getFullYear() || calendarDate.getMonth() !== new Date(currentBatch.start).getMonth())" 
+                                    class="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition font-medium shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1.5"
+                                    title="回到批次开始月份">
+                                <i class="fas fa-calendar-day text-sm"></i>
+                                <span class="hidden sm:inline">回到批次</span>
+                            </button>
+                        </div>
+                        <h2 class="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-calendar-alt text-blue-600"></i>
+                            <span>{{ calendarDate.getFullYear() }}年 {{ calendarDate.getMonth() + 1 }}月</span>
+                        </h2>
+                        <button @click="changeMonth(1)" class="px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition font-medium shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1.5">
+                            <span class="hidden sm:inline">下月</span>
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </button>
                     </div>
                     <div v-if="!currentBatch" class="text-center py-12">
                         <div class="text-6xl mb-4">📋</div>
@@ -1304,6 +1320,15 @@
                 // 修复日历切换与批次联动
                 const changeMonth = (offset) => {
                     calendarDate.value = new Date(calendarDate.value.getFullYear(), calendarDate.value.getMonth() + offset, 1);
+                };
+                
+                // 回到批次开始月份
+                const resetToBatchMonth = () => {
+                    if (currentBatch.value) {
+                        const [y, m] = currentBatch.value.start.split('-').map(Number);
+                        calendarDate.value = new Date(y, m - 1, 1);
+                        showToast('✅ 已回到批次开始月份');
+                    }
                 };
                 watch(currentView, () => {
                     updateURLParams();
@@ -2206,7 +2231,7 @@
                 });
                 return {
                     currentView, mobileMenuOpen, importText, parsedData, members, batches, currentBatchId, currentBatch, batchDays,
-                    memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth,
+                    memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth, resetToBatchMonth,
                     showMemberModal, memberModalTitle, memberModalFilters, filteredMembersForModal, currentPoolMembers, topNCount, editModalPoolMembers,
                     showScheduleConfigModal, scheduleConfigRole, scheduleConfig, schedulePreview,
                     showEditModal, editModalDate, editModalRole, editModalValue, showCloudConfig, showHelpModal, showAddPersonModal, newPerson, newBatch, cloud,
