@@ -365,9 +365,11 @@
                                                     :disabled="!isDateInBatchRange(day.date)">
                                                     <option value="" class="text-gray-400">-- 未排 --</option>
                                                     <option v-for="m in currentBatch.leaderPool.members" :key="m.id" :value="m.id" 
-                                                            :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : ''">
+                                                            :disabled="isMemberConflictOnDay(day.date, m.id, 'leader')"
+                                                            :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : (isMemberConflictOnDay(day.date, m.id, 'leader') ? 'text-gray-400 bg-gray-100' : '')">
                                                         {{ getMemberName(m.id) }} 
-                                                        <span v-if="isMemberOverLimit(m.id, 'leader')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'leader') }}/上限:{{ getMemberLimit(m.id, 'leader') }})</span>
+                                                        <span v-if="isMemberConflictOnDay(day.date, m.id, 'leader')" class="text-gray-500">(🚫与护卫相同)</span>
+                                                        <span v-else-if="isMemberOverLimit(m.id, 'leader')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'leader') }}/上限:{{ getMemberLimit(m.id, 'leader') }})</span>
                                                         <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'leader') }})</span>
                                                     </option>
                                                 </select>
@@ -381,9 +383,11 @@
                                                     :disabled="!isDateInBatchRange(day.date)">
                                                     <option value="" class="text-gray-400">-- 未排 --</option>
                                                     <option v-for="m in currentBatch.guardPool.members" :key="m.id" :value="m.id"
-                                                            :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : ''">
+                                                            :disabled="isMemberConflictOnDay(day.date, m.id, 'guard')"
+                                                            :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : (isMemberConflictOnDay(day.date, m.id, 'guard') ? 'text-gray-400 bg-gray-100' : '')">
                                                         {{ getMemberName(m.id) }}
-                                                        <span v-if="isMemberOverLimit(m.id, 'guard')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'guard') }}/上限:{{ getMemberLimit(m.id, 'guard') }})</span>
+                                                        <span v-if="isMemberConflictOnDay(day.date, m.id, 'guard')" class="text-gray-500">(🚫与队长相同)</span>
+                                                        <span v-else-if="isMemberOverLimit(m.id, 'guard')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'guard') }}/上限:{{ getMemberLimit(m.id, 'guard') }})</span>
                                                         <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'guard') }})</span>
                                                     </option>
                                                 </select>
@@ -633,9 +637,12 @@
                 <h3 class="font-bold mb-4">修改: {{ editModalDate }} ({{ editModalRole === 'leader' ? '队长' : '护卫' }})</h3>
                 <select v-model="editModalValue" class="w-full p-3 border rounded mb-4 max-h-60 overflow-y-auto">
                     <option :value="null">-- 清空 --</option>
-                    <option v-for="m in editModalPoolMembers" :key="m.id" :value="m.id">
+                    <option v-for="m in editModalPoolMembers" :key="m.id" :value="m.id"
+                            :disabled="isMemberConflictOnDay(editModalDate, m.id, editModalRole)"
+                            :class="isMemberConflictOnDay(editModalDate, m.id, editModalRole) ? 'text-gray-400 bg-gray-100' : (isMemberOverLimit(m.id, editModalRole) ? 'text-red-600' : '')">
                         {{ getMemberName(m.id) }} 
-                        <span v-if="isMemberOverLimit(m.id, editModalRole)" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, editModalRole) }}/上限:{{ getMemberLimit(m.id, editModalRole) }})</span>
+                        <span v-if="isMemberConflictOnDay(editModalDate, m.id, editModalRole)" class="text-gray-500">(🚫与{{ editModalRole === 'leader' ? '护卫' : '队长' }}相同)</span>
+                        <span v-else-if="isMemberOverLimit(m.id, editModalRole)" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, editModalRole) }}/上限:{{ getMemberLimit(m.id, editModalRole) }})</span>
                         <span v-else class="text-gray-400">(剩余: {{ getMemberRemainingTimes(m.id, editModalRole) }})</span>
                     </option>
                 </select>
@@ -816,9 +823,11 @@
                             :disabled="!isDateInBatchRange(selectedCalendarDay)">
                             <option value="" class="text-gray-400">-- 未安排 --</option>
                             <option v-for="m in currentBatch?.leaderPool?.members || []" :key="m.id" :value="m.id"
-                                    :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : ''">
+                                    :disabled="isMemberConflictOnDay(selectedCalendarDay, m.id, 'leader')"
+                                    :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : (isMemberConflictOnDay(selectedCalendarDay, m.id, 'leader') ? 'text-gray-400 bg-gray-100' : '')">
                                 {{ getMemberName(m.id) }} 
-                                <span v-if="isMemberOverLimit(m.id, 'leader')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'leader') }}/上限:{{ getMemberLimit(m.id, 'leader') }})</span>
+                                <span v-if="isMemberConflictOnDay(selectedCalendarDay, m.id, 'leader')" class="text-gray-500">(🚫与护卫相同)</span>
+                                <span v-else-if="isMemberOverLimit(m.id, 'leader')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'leader') }}/上限:{{ getMemberLimit(m.id, 'leader') }})</span>
                                 <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'leader') }})</span>
                             </option>
                         </select>
@@ -835,9 +844,11 @@
                             :disabled="!isDateInBatchRange(selectedCalendarDay)">
                             <option value="" class="text-gray-400">-- 未安排 --</option>
                             <option v-for="m in currentBatch?.guardPool?.members || []" :key="m.id" :value="m.id"
-                                    :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : ''">
+                                    :disabled="isMemberConflictOnDay(selectedCalendarDay, m.id, 'guard')"
+                                    :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : (isMemberConflictOnDay(selectedCalendarDay, m.id, 'guard') ? 'text-gray-400 bg-gray-100' : '')">
                                 {{ getMemberName(m.id) }}
-                                <span v-if="isMemberOverLimit(m.id, 'guard')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'guard') }}/上限:{{ getMemberLimit(m.id, 'guard') }})</span>
+                                <span v-if="isMemberConflictOnDay(selectedCalendarDay, m.id, 'guard')" class="text-gray-500">(🚫与队长相同)</span>
+                                <span v-else-if="isMemberOverLimit(m.id, 'guard')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'guard') }}/上限:{{ getMemberLimit(m.id, 'guard') }})</span>
                                 <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'guard') }})</span>
                             </option>
                         </select>
@@ -1480,21 +1491,78 @@
                         const [f, o] = scheduleConfig.value.sortBy.split('_');
                         membersWithCount.sort((a,b) => o==='desc' ? (b[f]||0)-(a[f]||0) : (a[f]||0)-(b[f]||0));
                     } else { membersWithCount.sort(() => Math.random()-0.5); }
+                    
+                    // 智能排期：避开与另一角色的冲突
+                    const otherRole = role === 'leader' ? 'guard' : 'leader';
                     const preview = []; let idx = 0;
                     days.forEach(d => {
-                        const cand = membersWithCount[idx % membersWithCount.length];
-                        if(cand) { preview.push({ date: d.date, memberName: cand.name }); cand.remaining--; if(cand.remaining <= 0) membersWithCount.splice(idx % membersWithCount.length, 1); }
+                        // 获取该日期另一角色的人员ID
+                        const otherRoleId = batch.schedule[d.date]?.[otherRole];
+                        
+                        // 尝试找到不冲突的成员
+                        let assigned = false;
+                        let attempts = 0;
+                        const maxAttempts = membersWithCount.length;
+                        
+                        while(!assigned && attempts < maxAttempts) {
+                            const cand = membersWithCount[idx % membersWithCount.length];
+                            if(cand && cand.id !== otherRoleId) {
+                                // 不冲突，可以安排
+                                preview.push({ date: d.date, memberName: cand.name });
+                                cand.remaining--;
+                                if(cand.remaining <= 0) {
+                                    membersWithCount.splice(idx % membersWithCount.length, 1);
+                                } else {
+                                    idx++;
+                                }
+                                assigned = true;
+                            } else {
+                                // 冲突或无效，尝试下一个
+                                idx++;
+                                attempts++;
+                            }
+                        }
+                        
+                        // 如果所有成员都冲突，记录警告
+                        if(!assigned) {
+                            console.warn(`日期 ${d.date} 无法安排${role === 'leader' ? '队长' : '护卫'}，所有候选人都与${otherRole === 'leader' ? '队长' : '护卫'}冲突`);
+                        }
                     });
                     schedulePreview.value = preview;
                 };
                 const confirmSchedule = () => {
                     if(!schedulePreview.value.length) return showToast('请先预览', 'warning');
                     const role = scheduleConfigRole.value;
+                    let successCount = 0;
+                    let skipCount = 0;
+                    
                     schedulePreview.value.forEach(item => {
                         if(!currentBatch.value.schedule[item.date]) currentBatch.value.schedule[item.date] = {};
-                        currentBatch.value.schedule[item.date][role] = members.value.find(m=>m.name===item.memberName)?.id;
+                        
+                        // 检查队长和护卫是否为同一人
+                        const otherRole = role === 'leader' ? 'guard' : 'leader';
+                        const memberId = members.value.find(m=>m.name===item.memberName)?.id;
+                        
+                        if(memberId && currentBatch.value.schedule[item.date][otherRole] === memberId) {
+                            console.warn(`跳过冲突: ${item.date} ${role === 'leader' ? '队长' : '护卫'}与${otherRole === 'leader' ? '队长' : '护卫'}为同一人`);
+                            skipCount++;
+                            return; // 跳过这个日期的排期
+                        }
+                        
+                        currentBatch.value.schedule[item.date][role] = memberId;
+                        successCount++;
                     });
-                    saveData(); closeScheduleConfigModal(); showToast(`✅ 已安排 ${schedulePreview.value.length} 天`); schedulePreview.value = [];
+                    
+                    saveData(); 
+                    closeScheduleConfigModal(); 
+                    
+                    if(skipCount > 0) {
+                        showToast(`✅ 已安排 ${successCount} 天，跳过 ${skipCount} 天冲突`);
+                    } else {
+                        showToast(`✅ 已安排 ${successCount} 天`);
+                    }
+                    
+                    schedulePreview.value = [];
                 };
 
                 const getSchedule = (date, role) => currentBatch.value?.schedule[date]?.[role] || null;
@@ -1521,6 +1589,12 @@
                     let c=0; Object.values(currentBatch.value.schedule).forEach(s=>{if(s[role]===mid)c++;});
                     return c > pm.maxTimes;
                 };
+                // 检查成员在某天是否与另一角色冲突
+                const isMemberConflictOnDay = (date, mid, role) => {
+                    if(!mid || !currentBatch.value || !currentBatch.value.schedule[date]) return false;
+                    const otherRole = role === 'leader' ? 'guard' : 'leader';
+                    return currentBatch.value.schedule[date][otherRole] === mid;
+                };
                 
                 // 检查日期是否在批次范围内
                 const isDateInBatchRange = (dateStr) => {
@@ -1535,6 +1609,13 @@
                         const date = editModalDate.value;
                         const role = editModalRole.value;
                         const newValue = editModalValue.value;
+                        
+                        // 检查队长和护卫是否为同一人
+                        const otherRole = role === 'leader' ? 'guard' : 'leader';
+                        if(newValue && currentBatch.value.schedule[date] && currentBatch.value.schedule[date][otherRole] === newValue) {
+                            showToast(`❌ ${role === 'leader' ? '队长' : '护卫'}和${otherRole === 'leader' ? '队长' : '护卫'}不能是同一人！`, 'error');
+                            return;
+                        }
                         
                         // 检查日期是否在批次范围内
                         if (!isDateInBatchRange(date)) {
@@ -1575,6 +1656,13 @@
                 // 直接更新排期（用于下拉框）
                 const updateSchedule = (date, role, value) => {
                     if(currentBatch.value) {
+                        // 检查队长和护卫是否为同一人
+                        const otherRole = role === 'leader' ? 'guard' : 'leader';
+                        if(value && currentBatch.value.schedule[date] && currentBatch.value.schedule[date][otherRole] === value) {
+                            showToast(`❌ ${role === 'leader' ? '队长' : '护卫'}和${otherRole === 'leader' ? '队长' : '护卫'}不能是同一人！`, 'error');
+                            return;
+                        }
+                        
                         // 检查日期是否在批次范围内
                         if (!isDateInBatchRange(date)) {
                             showToast('⚠️ 该日期不在当前批次的排期范围内', 'error');
