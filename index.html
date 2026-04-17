@@ -653,8 +653,8 @@
                     <!-- 配置区域 -->
                     <div class="space-y-3">
                         <!-- 配置展开/收起按钮 -->
-                        <button @click="cloudConfigExpanded = !cloudConfigExpanded" 
-                                class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition border">
+                        <button @click.stop="cloudConfigExpanded = !cloudConfigExpanded" 
+                                class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition border touch-target">
                             <div class="flex items-center gap-2">
                                 <i :class="cloudConfigExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="text-gray-500"></i>
                                 <span class="font-medium text-sm text-gray-700">Gist 配置</span>
@@ -673,6 +673,11 @@
                             </div>
                             <div v-if="cloud.syncStatus" :class="['p-2 rounded text-sm mt-3', cloud.syncStatus.includes('成功') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">{{ cloud.syncStatus }}</div>
                             <div v-if="cloud.lastSyncTime" class="text-xs text-gray-500 mt-2">上次同步: {{ new Date(cloud.lastSyncTime).toLocaleString('zh-CN') }}</div>
+                            
+                            <!-- 保存配置按钮放到折叠区域内 -->
+                            <button @click="saveCloudConfig" class="w-full px-4 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 touch-target font-medium mt-2">
+                                <i class="fas fa-floppy-disk mr-1"></i>保存配置
+                            </button>
                         </div>
                     </div>
                     
@@ -732,9 +737,6 @@
                     <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
                         <button @click="showCloudConfig = false" class="px-4 py-2 border rounded hover:bg-gray-100 touch-target">关闭</button>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <button @click="saveCloudConfig" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 touch-target">
-                                <i class="fas fa-floppy-disk mr-1"></i>保存配置
-                            </button>
                             <button @click="syncFromCloud" :disabled="cloud.loading || !cloud.token || !cloud.gistId" 
                                     class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded hover:from-green-600 hover:to-emerald-700 touch-target disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                                     :title="!cloud.token || !cloud.gistId ? '请先配置 Token 和 Gist ID' : ''">
@@ -760,34 +762,30 @@
                 </div>
                 
                 <div class="space-y-4">
-                    <!-- 队长信息 -->
-                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div class="text-sm text-blue-600 font-medium mb-2">👑 队长</div>
+                    <!-- 队长信息 - 点击直接编辑 -->
+                    <div @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'leader')" 
+                         class="p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition active:scale-[0.98]">
+                        <div class="text-sm text-blue-600 font-medium mb-2 flex items-center justify-between">
+                            <span>👑 队长</span>
+                            <i class="fas fa-pen-to-square text-blue-400"></i>
+                        </div>
                         <div v-if="getSchedule(selectedCalendarDay, 'leader')" class="text-lg font-bold text-blue-700">
                             {{ getMemberName(getSchedule(selectedCalendarDay, 'leader')) }}
                         </div>
-                        <div v-else class="text-gray-400">未安排</div>
+                        <div v-else class="text-gray-400">点击设置队长</div>
                     </div>
                     
-                    <!-- 护卫信息 -->
-                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div class="text-sm text-green-600 font-medium mb-2">🛡️ 护卫</div>
+                    <!-- 护卫信息 - 点击直接编辑 -->
+                    <div @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'guard')" 
+                         class="p-4 bg-green-50 rounded-lg border border-green-200 cursor-pointer hover:bg-green-100 transition active:scale-[0.98]">
+                        <div class="text-sm text-green-600 font-medium mb-2 flex items-center justify-between">
+                            <span>🛡️ 护卫</span>
+                            <i class="fas fa-pen-to-square text-green-400"></i>
+                        </div>
                         <div v-if="getSchedule(selectedCalendarDay, 'guard')" class="text-lg font-bold text-green-700">
                             {{ getMemberName(getSchedule(selectedCalendarDay, 'guard')) }}
                         </div>
-                        <div v-else class="text-gray-400">未安排</div>
-                    </div>
-                    
-                    <!-- 快速操作 -->
-                    <div class="grid grid-cols-2 gap-3 pt-2">
-                        <button @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'leader')" 
-                                class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium touch-target">
-                            ✏️ 修改队长
-                        </button>
-                        <button @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'guard')" 
-                                class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium touch-target">
-                            ✏️ 修改护卫
-                        </button>
+                        <div v-else class="text-gray-400">点击设置护卫</div>
                     </div>
                 </div>
             </div>
