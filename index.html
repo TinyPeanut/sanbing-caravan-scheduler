@@ -653,7 +653,8 @@
                     <!-- 配置区域 -->
                     <div class="space-y-3">
                         <!-- 配置展开/收起按钮 -->
-                        <button @click.stop="cloudConfigExpanded = !cloudConfigExpanded" 
+                        <button @click="cloudConfigExpanded = !cloudConfigExpanded" 
+                                type="button"
                                 class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition border touch-target">
                             <div class="flex items-center gap-2">
                                 <i :class="cloudConfigExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="text-gray-500"></i>
@@ -762,30 +763,40 @@
                 </div>
                 
                 <div class="space-y-4">
-                    <!-- 队长信息 - 点击直接编辑 -->
-                    <div @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'leader')" 
-                         class="p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition active:scale-[0.98]">
-                        <div class="text-sm text-blue-600 font-medium mb-2 flex items-center justify-between">
-                            <span>👑 队长</span>
-                            <i class="fas fa-pen-to-square text-blue-400"></i>
-                        </div>
-                        <div v-if="getSchedule(selectedCalendarDay, 'leader')" class="text-lg font-bold text-blue-700">
-                            {{ getMemberName(getSchedule(selectedCalendarDay, 'leader')) }}
-                        </div>
-                        <div v-else class="text-gray-400">点击设置队长</div>
+                    <!-- 队长信息 - 直接显示下拉框 -->
+                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="text-sm text-blue-600 font-medium mb-2">👑 队长</div>
+                        <select 
+                            :value="getSchedule(selectedCalendarDay, 'leader')" 
+                            @change="updateCalendarSchedule(selectedCalendarDay, 'leader', $event.target.value)"
+                            class="w-full p-2.5 border border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer text-sm"
+                            :class="{'text-gray-400': !getSchedule(selectedCalendarDay, 'leader')}">
+                            <option value="" class="text-gray-400">-- 未安排 --</option>
+                            <option v-for="m in currentBatch?.leaderPool?.members || []" :key="m.id" :value="m.id"
+                                    :class="isMemberOverLimit(m.id, 'leader') ? 'text-red-600' : ''">
+                                {{ getMemberName(m.id) }} 
+                                <span v-if="isMemberOverLimit(m.id, 'leader')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'leader') }}/上限:{{ getMemberLimit(m.id, 'leader') }})</span>
+                                <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'leader') }})</span>
+                            </option>
+                        </select>
                     </div>
                     
-                    <!-- 护卫信息 - 点击直接编辑 -->
-                    <div @click="closeCalendarDayModal(); openManualEdit(selectedCalendarDay, 'guard')" 
-                         class="p-4 bg-green-50 rounded-lg border border-green-200 cursor-pointer hover:bg-green-100 transition active:scale-[0.98]">
-                        <div class="text-sm text-green-600 font-medium mb-2 flex items-center justify-between">
-                            <span>🛡️ 护卫</span>
-                            <i class="fas fa-pen-to-square text-green-400"></i>
-                        </div>
-                        <div v-if="getSchedule(selectedCalendarDay, 'guard')" class="text-lg font-bold text-green-700">
-                            {{ getMemberName(getSchedule(selectedCalendarDay, 'guard')) }}
-                        </div>
-                        <div v-else class="text-gray-400">点击设置护卫</div>
+                    <!-- 护卫信息 - 直接显示下拉框 -->
+                    <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div class="text-sm text-green-600 font-medium mb-2">🛡️ 护卫</div>
+                        <select 
+                            :value="getSchedule(selectedCalendarDay, 'guard')" 
+                            @change="updateCalendarSchedule(selectedCalendarDay, 'guard', $event.target.value)"
+                            class="w-full p-2.5 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 cursor-pointer text-sm"
+                            :class="{'text-gray-400': !getSchedule(selectedCalendarDay, 'guard')}">
+                            <option value="" class="text-gray-400">-- 未安排 --</option>
+                            <option v-for="m in currentBatch?.guardPool?.members || []" :key="m.id" :value="m.id"
+                                    :class="isMemberOverLimit(m.id, 'guard') ? 'text-red-600' : ''">
+                                {{ getMemberName(m.id) }}
+                                <span v-if="isMemberOverLimit(m.id, 'guard')" class="text-red-600 font-bold">(⚠️已排:{{ getMemberScheduledCount(m.id, 'guard') }}/上限:{{ getMemberLimit(m.id, 'guard') }})</span>
+                                <span v-else>(剩: {{ getMemberRemainingTimes(m.id, 'guard') }})</span>
+                            </option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -1526,6 +1537,36 @@
                                 const verifyCount = getMemberScheduledCount(value, role);
                                 console.log(`验证: ${value} 当前已排${role === 'leader' ? '队长' : '护卫'}次数:`, verifyCount);
                             }, 100);
+                        }
+                    }
+                };
+                // 日历弹窗中的排期更新
+                const updateCalendarSchedule = (date, role, value) => {
+                    if(currentBatch.value) {
+                        // 确保日期对象存在
+                        if(!currentBatch.value.schedule[date]) {
+                            currentBatch.value.schedule[date] = {};
+                        }
+                        
+                        // 直接赋值新值
+                        currentBatch.value.schedule[date][role] = value || null;
+                        
+                        // 如果队长和护卫都为空，则删除该日期的排期记录
+                        if (!currentBatch.value.schedule[date].leader && !currentBatch.value.schedule[date].guard) {
+                            delete currentBatch.value.schedule[date];
+                        }
+                        
+                        // 强制触发响应式更新
+                        currentBatch.value.schedule = {...currentBatch.value.schedule};
+                        
+                        saveData();
+                        
+                        // 显示成功提示
+                        if (value) {
+                            const memberName = getMemberName(value);
+                            showToast(`✅ 已设置${role === 'leader' ? '队长' : '护卫'}: ${memberName}`);
+                        } else {
+                            showToast(`✅ 已清空${role === 'leader' ? '队长' : '护卫'}`);
                         }
                     }
                 };
