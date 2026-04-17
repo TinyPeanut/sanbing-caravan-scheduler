@@ -1604,9 +1604,12 @@
                 };
                 // 日历弹窗中的排期更新
                 const updateCalendarSchedule = (date, role, value) => {
+                    console.log('📅 日历排期更新:', { date, role, value, batchName: currentBatch.value?.name });
+                    
                     if(currentBatch.value) {
                         // 检查日期是否在批次范围内
                         if (!isDateInBatchRange(date)) {
+                            console.warn('⚠️ 日期不在批次范围内:', date);
                             showToast('⚠️ 该日期不在当前批次的排期范围内', 'error');
                             return;
                         }
@@ -1616,6 +1619,10 @@
                             currentBatch.value.schedule[date] = {};
                         }
                         
+                        // 记录旧值
+                        const oldValue = currentBatch.value.schedule[date][role];
+                        console.log(`修改前: ${date} ${role === 'leader' ? '队长' : '护卫'}: ${oldValue || '空'} -> ${value || '空'}`);
+                        
                         // 直接赋值新值
                         currentBatch.value.schedule[date][role] = value || null;
                         
@@ -1624,8 +1631,11 @@
                             delete currentBatch.value.schedule[date];
                         }
                         
-                        // 强制触发响应式更新
-                        currentBatch.value.schedule = {...currentBatch.value.schedule};
+                        // 强制触发响应式更新 - 使用深拷贝
+                        const newSchedule = JSON.parse(JSON.stringify(currentBatch.value.schedule));
+                        currentBatch.value.schedule = newSchedule;
+                        
+                        console.log('✅ 数据已更新，当前schedule:', currentBatch.value.schedule[date]);
                         
                         saveData();
                         
@@ -1636,6 +1646,11 @@
                         } else {
                             showToast(`✅ 已清空${role === 'leader' ? '队长' : '护卫'}`);
                         }
+                        
+                        // 验证更新后的数据
+                        setTimeout(() => {
+                            console.log('验证更新:', currentBatch.value.schedule[date]);
+                        }, 100);
                     }
                 };
                 const deleteDaySchedule = (date) => { if(confirm(`确定清空 ${date} 的排期吗？\n（队长和护卫都将被清空）`)) { delete currentBatch.value.schedule[date]; saveData(); } };
