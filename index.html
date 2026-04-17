@@ -88,6 +88,9 @@
         <div class="loading-text">加载中...</div>
     </div>
     
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
     <div id="app" class="flex h-screen overflow-hidden bg-gray-50">
         <header class="md:hidden bg-white shadow-sm border-b p-3 flex justify-between items-center z-50 fixed top-0 left-0 right-0 h-14">
             <div class="flex items-center min-w-0 flex-1 mr-2">
@@ -126,7 +129,7 @@
             <div class="p-6 border-b border-gray-100 hidden md:block">
                 <h1 class="text-xl font-bold text-gray-800"><i class="fas fa-truck-fast text-blue-600 mr-2"></i>商队排期系统</h1>
                 <div class="flex items-center gap-2 mt-1">
-                    <p class="text-xs text-gray-400">v3.0.0</p>
+                    <p class="text-xs text-gray-400">v{{ appVersion }}</p>
                 </div>
             </div>
             <button @click="mobileMenuOpen = false" class="md:hidden absolute top-3 right-3 p-2 text-gray-500 hover:bg-gray-100 rounded"><i class="fas fa-times"></i></button>
@@ -1037,10 +1040,45 @@
                             </div>
                         </section>
 
+                        <!-- 版本历史 -->
+                        <section class="pt-4 border-t">
+                            <h4 class="font-bold text-base mb-3 text-indigo-700 flex items-center gap-2">
+                                <i class="fas fa-code-branch"></i>
+                                <span>版本历史</span>
+                            </h4>
+                            <div class="space-y-3 text-sm">
+                                <div class="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-l-4 border-blue-500">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-bold text-blue-700">v{{ appVersion }}</span>
+                                        <span class="text-xs text-gray-500">{{ appVersionDate }}</span>
+                                    </div>
+                                    <ul class="list-disc list-inside ml-2 space-y-1 text-xs text-gray-700">
+                                        <li>✨ <strong>页面加载优化</strong> - 添加优雅加载屏幕，防止模板闪烁</li>
+                                        <li>🔒 <strong>队长护卫冲突检测</strong> - 硬性限制同一天不能为同一人</li>
+                                        <li>📱 <strong>移动端显示修复</strong> - 优化非批次月份显示效果</li>
+                                        <li>🎨 <strong>UI体验提升</strong> - 平滑过渡动画，更专业的视觉效果</li>
+                                    </ul>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg border-l-4 border-gray-300">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-bold text-gray-700">v3.0.0</span>
+                                        <span class="text-xs text-gray-500">初始版本</span>
+                                    </div>
+                                    <ul class="list-disc list-inside ml-2 space-y-1 text-xs text-gray-600">
+                                        <li>人员管理与游戏数据导入</li>
+                                        <li>批次与池子管理</li>
+                                        <li>自动排期与手动调整</li>
+                                        <li>日历视图与统计分析</li>
+                                        <li>云端同步与版本管理</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </section>
+
                         <!-- 技术支持 -->
                         <section class="pt-4 border-t">
                             <div class="text-center text-sm text-gray-500">
-                                <div class="mb-2">商队排期系统 v3.0.0</div>
+                                <div class="mb-2">商队排期系统 v{{ appVersion }}</div>
                                 <div>作者：PEANUTS</div>
                                 <div class="mt-2 text-xs">如有问题或建议，欢迎反馈！</div>
                             </div>
@@ -1058,6 +1096,10 @@
     </div>
 
     <script>
+        // 应用版本信息 - 统一管理
+        const APP_VERSION = '3.1.0';
+        const APP_VERSION_DATE = '2026-04-17';
+        
         const { createApp, ref, computed, onMounted, watch } = Vue;
         createApp({
             setup() {
@@ -1110,7 +1152,11 @@
                 const calendarGuardValue = ref('');
                 const cloudUpdateAvailable = ref(false);
                 const cloudUpdateInfo = ref(null);
-                const currentVersion = ref(''); // 当前版本号
+                const currentVersion = ref(''); // 当前版本号（云端）
+                
+                // 应用版本号
+                const appVersion = APP_VERSION;
+                const appVersionDate = APP_VERSION_DATE;
 
                 // URL参数管理
                 const updateURLParams = () => {
@@ -2381,6 +2427,19 @@
                     initCurrentMonthDates(); 
                     loadData();
                     loadURLParams();
+                    
+                    // 隐藏加载屏幕，显示应用
+                    setTimeout(() => {
+                        const loadingScreen = document.getElementById('loadingScreen');
+                        const app = document.getElementById('app');
+                        if (loadingScreen) {
+                            loadingScreen.classList.add('hidden');
+                        }
+                        if (app) {
+                            app.classList.add('vue-ready');
+                        }
+                    }, 100);
+                    
                     // 延迟检查云端更新，确保数据加载完成
                     setTimeout(() => checkCloudUpdate(), 1000);
                 });
@@ -2401,7 +2460,7 @@
                     downloadJSON, uploadJSON, exportToExcel, importFromExcel, saveCloudConfig, syncFromCloud, syncToCloud, syncFromVersion, updateVersionsList,
                     openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay, calendarLeaderValue, calendarGuardValue, handleCalendarScheduleChange,
                     cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate,
-                    currentVersion,
+                    currentVersion, appVersion, appVersionDate,
                     cloudConfigExpanded, toggleCloudConfig,
                     showToast
                 };
