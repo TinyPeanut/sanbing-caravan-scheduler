@@ -513,7 +513,7 @@
                             </div>
                         </div>
                         <!-- 有排期数据或正常显示日历 -->
-                        <div v-else-if="hasAnySchedule">
+                        <div v-else>
                             <!-- PC端紧凑布局 -->
                             <div class="hidden md:grid grid-cols-7 gap-2">
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
