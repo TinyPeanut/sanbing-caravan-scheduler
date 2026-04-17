@@ -455,26 +455,29 @@
                                          day.currentMonth ? (isDateInBatchRange(day.dateStr) ? 'bg-white hover:bg-blue-50 cursor-pointer hover:shadow-md' : 'bg-gray-100 opacity-60') : 'bg-gray-50 text-gray-400',
                                          day.isToday ? 'ring-2 ring-blue-500' : ''
                                      ]">
-                                    <span class="text-xs font-medium mb-1">{{ day.date }}</span>
+                                    <!-- 批次范围外提示 - 放在最上层 -->
+                                    <div v-if="day.currentMonth && day.dateStr && !isDateInBatchRange(day.dateStr)" class="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-80 rounded-lg z-10">
+                                        <span class="text-xs text-gray-600 font-bold">非批次范围</span>
+                                    </div>
+                                    
+                                    <span class="text-xs font-medium mb-1" :class="!isDateInBatchRange(day.dateStr) ? 'opacity-50' : ''">{{ day.date }}</span>
                                     <template v-if="day.currentMonth && day.dateStr">
                                         <!-- 队长区域 -->
                                         <div class="text-xs rounded px-1 py-0.5 mb-1 truncate leading-tight"
-                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300'">
+                                             :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300'"
+                                             :style="!isDateInBatchRange(day.dateStr) ? 'opacity: 0.3;' : ''">
                                             <span v-if="getSchedule(day.dateStr, 'leader')">👑 {{ getMemberName(getSchedule(day.dateStr, 'leader')) }}</span>
                                             <span v-else>-</span>
                                         </div>
                                                             
                                         <!-- 护卫区域 -->
                                         <div class="text-xs rounded px-1 py-0.5 truncate leading-tight"
-                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700' : 'text-gray-300'">
+                                             :class="getSchedule(day.dateStr, 'guard') ? 'bg-green-50 text-green-700' : 'text-gray-300'"
+                                             :style="!isDateInBatchRange(day.dateStr) ? 'opacity: 0.3;' : ''">
                                             <span v-if="getSchedule(day.dateStr, 'guard')">🛡️ {{ getMemberName(getSchedule(day.dateStr, 'guard')) }}</span>
                                             <span v-else>-</span>
                                         </div>
                                     </template>
-                                    <!-- 批次范围外提示 -->
-                                    <div v-if="day.currentMonth && day.dateStr && !isDateInBatchRange(day.dateStr)" class="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50">
-                                        <span class="text-xs text-gray-500 font-medium">非批次范围</span>
-                                    </div>
                                 </div>
                             </div>
                                                 
@@ -483,13 +486,18 @@
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-xs">{{ w }}</div>
                                 <div v-for="(day, idx) in calendarDays" :key="idx" 
                                      @click="day.currentMonth && day.dateStr && isDateInBatchRange(day.dateStr) ? openCalendarDayDetail(day.dateStr) : null"
-                                     class="border rounded-lg p-1 min-h-[60px] flex flex-col items-center justify-start transition"
+                                     class="border rounded-lg p-1 min-h-[60px] flex flex-col items-center justify-start transition relative"
                                      :class="[
                                          day.currentMonth ? (isDateInBatchRange(day.dateStr) ? 'bg-white cursor-pointer active:scale-95' + (getSchedule(day.dateStr, 'leader') || getSchedule(day.dateStr, 'guard') ? ' bg-yellow-50 border-yellow-300' : '') : 'bg-gray-100 opacity-60') : 'bg-gray-50 text-gray-400',
                                          day.isToday ? 'ring-2 ring-blue-500' : ''
                                      ]">
-                                    <span class="text-sm font-bold mb-1">{{ day.date }}</span>
-                                    <div v-if="day.currentMonth && day.dateStr" class="flex flex-col gap-0.5 w-full px-0.5">
+                                    <!-- 批次范围外提示 - 放在最上层 -->
+                                    <div v-if="day.currentMonth && day.dateStr && !isDateInBatchRange(day.dateStr)" class="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-80 rounded-lg z-10">
+                                        <span class="text-xs text-gray-600 font-bold">非批次</span>
+                                    </div>
+                                    
+                                    <span class="text-sm font-bold mb-1" :class="!isDateInBatchRange(day.dateStr) ? 'opacity-50' : ''">{{ day.date }}</span>
+                                    <div v-if="day.currentMonth && day.dateStr" class="flex flex-col gap-0.5 w-full px-0.5" :class="!isDateInBatchRange(day.dateStr) ? 'opacity-30' : ''">
                                         <div class="text-xs text-center py-0.5 rounded"
                                              :class="getSchedule(day.dateStr, 'leader') ? 'bg-blue-50 text-blue-700' : 'text-gray-300'">
                                             <span v-if="getSchedule(day.dateStr, 'leader')">👑</span>
@@ -500,10 +508,6 @@
                                             <span v-if="getSchedule(day.dateStr, 'guard')">🛡️</span>
                                             <span v-else>-</span>
                                         </div>
-                                    </div>
-                                    <!-- 批次范围外提示 -->
-                                    <div v-if="day.currentMonth && day.dateStr && !isDateInBatchRange(day.dateStr)" class="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50 rounded-lg">
-                                        <span class="text-xs text-gray-500 font-medium">非批次</span>
                                     </div>
                                 </div>
                             </div>
@@ -2325,7 +2329,7 @@
                     createBatch, deleteBatch, getBatchDaysCount,
                     openMemberSelector, closeMemberModal, resetModalFilters, isMemberInPool, getCurrentPoolMember, toggleMemberSelection, selectAllFiltered, selectTopN, confirmMemberSelection,
                     openScheduleConfig, closeScheduleConfigModal, resetScheduleDateRange, previewSchedule, confirmSchedule,
-                    getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, getMemberScheduledCount, isMemberOverLimit, openManualEdit, confirmManualEdit, updateSchedule, deleteDaySchedule, clearAllSchedule,
+                    getSchedule, getMemberName, getMemberLimit, getMemberRemainingTimes, getMemberScheduledCount, isMemberOverLimit, isMemberConflictOnDay, openManualEdit, confirmManualEdit, updateSchedule, deleteDaySchedule, clearAllSchedule,
                     isDateInBatchRange,
                     getRoleScheduledCount, getOverLimitCount, getPoolStats,
                     downloadJSON, uploadJSON, exportToExcel, importFromExcel, saveCloudConfig, syncFromCloud, syncToCloud, syncFromVersion, updateVersionsList,
