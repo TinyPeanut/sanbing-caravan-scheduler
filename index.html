@@ -513,7 +513,7 @@
                             </div>
                         </div>
                         <!-- 有排期数据或正常显示日历 -->
-                        <div v-else>
+                        <div v-else-if="hasAnySchedule">
                             <!-- PC端紧凑布局 -->
                             <div class="hidden md:grid grid-cols-7 gap-2">
                                 <div v-for="w in ['日','一','二','三','四','五','六']" :key="w" class="text-center font-bold text-gray-500 py-2 text-sm">{{ w }}</div>
@@ -1828,6 +1828,19 @@
                             return;
                         }
                         
+                        // 检查队长和护卫是否为同一人
+                        const otherRole = role === 'leader' ? 'guard' : 'leader';
+                        if(value && currentBatch.value.schedule[date] && currentBatch.value.schedule[date][otherRole] === value) {
+                            showToast(`❌ ${role === 'leader' ? '队长' : '护卫'}和${otherRole === 'leader' ? '队长' : '护卫'}不能是同一人！`, 'error');
+                            // 恢复原值
+                            if (role === 'leader') {
+                                calendarLeaderValue.value = getSchedule(date, 'leader') || '';
+                            } else {
+                                calendarGuardValue.value = getSchedule(date, 'guard') || '';
+                            }
+                            return;
+                        }
+                        
                         // 确保日期对象存在
                         if(!currentBatch.value.schedule[date]) {
                             currentBatch.value.schedule[date] = {};
@@ -2141,7 +2154,7 @@
                 // Toast提示功能
                 const showToast = (message, type = 'success') => {
                     const toast = document.createElement('div');
-                    toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg text-white text-sm font-medium animate-bounce`;
+                    toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 z-[60] px-6 py-3 rounded-lg shadow-lg text-white text-sm font-medium animate-bounce`;
                     toast.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
                     toast.textContent = message;
                     document.body.appendChild(toast);
