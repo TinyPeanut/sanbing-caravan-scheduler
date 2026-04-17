@@ -653,7 +653,7 @@
                     <!-- 配置区域 -->
                     <div class="space-y-3">
                         <!-- 配置展开/收起按钮 -->
-                        <div @click="cloudConfigExpanded = !cloudConfigExpanded" 
+                        <div @click="toggleCloudConfig" 
                              class="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition border touch-target cursor-pointer">
                             <div class="flex items-center gap-2">
                                 <i :class="cloudConfigExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-right'" class="text-gray-500"></i>
@@ -1304,6 +1304,12 @@
                         }
                     });
                 });
+
+                // 切换Gist配置展开/收起
+                const toggleCloudConfig = () => {
+                    console.log('切换Gist配置:', !cloudConfigExpanded.value);
+                    cloudConfigExpanded.value = !cloudConfigExpanded.value;
+                };
 
                 const parseImport = () => {
                     const lines = importText.value.trim().split('\n');
@@ -2137,6 +2143,7 @@
                     openCalendarDayDetail, closeCalendarDayModal, showCalendarDayModal, selectedCalendarDay,
                     cloudUpdateAvailable, cloudUpdateInfo, handleCloudUpdate, dismissCloudUpdate,
                     currentVersion,
+                    cloudConfigExpanded, toggleCloudConfig,
                     showToast
                 };
             }
