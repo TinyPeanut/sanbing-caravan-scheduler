@@ -1,2 +1,2 @@
 # sanbing-caravan-scheduler
-https://TinyPeanut.github.io/sanbing-caravan-scheduler/
+https://tinypeanut.github.io/sanbing-caravan-scheduler/

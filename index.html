@@ -415,7 +415,7 @@
                                 <i class="fas fa-chevron-left text-sm"></i>
                                 <span class="hidden sm:inline">上月</span>
                             </button>
-                            <button @click="resetToBatchMonth" v-if="currentBatch && (calendarDate.getFullYear() !== new Date(currentBatch.start).getFullYear() || calendarDate.getMonth() !== new Date(currentBatch.start).getMonth())" 
+                            <button @click="resetToBatchMonth" v-if="shouldShowResetButton" 
                                     class="px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition font-medium shadow-sm hover:shadow-md active:scale-95 flex items-center gap-1.5"
                                     title="回到批次开始月份">
                                 <i class="fas fa-calendar-day text-sm"></i>
@@ -1327,11 +1327,29 @@
                 // 回到批次开始月份
                 const resetToBatchMonth = () => {
                     if (currentBatch.value) {
+                        console.log('🔄 回到批次月份:', currentBatch.value.start);
                         const [y, m] = currentBatch.value.start.split('-').map(Number);
+                        console.log('解析后的年月:', y, m);
                         calendarDate.value = new Date(y, m - 1, 1);
+                        console.log('设置后的calendarDate:', calendarDate.value);
                         showToast('✅ 已回到批次开始月份');
+                    } else {
+                        console.warn('⚠️ 当前没有选中的批次');
                     }
                 };
+                
+                // 计算是否应该显示“回到批次”按钮
+                const shouldShowResetButton = computed(() => {
+                    if (!currentBatch.value) return false;
+                    const batchStart = new Date(currentBatch.value.start);
+                    const batchYear = batchStart.getFullYear();
+                    const batchMonth = batchStart.getMonth();
+                    const currentYear = calendarDate.value.getFullYear();
+                    const currentMonth = calendarDate.value.getMonth();
+                    const shouldShow = currentYear !== batchYear || currentMonth !== batchMonth;
+                    console.log('按钮显示判断:', { batchYear, batchMonth, currentYear, currentMonth, shouldShow });
+                    return shouldShow;
+                });
                 watch(currentView, () => {
                     updateURLParams();
                 });
@@ -2245,7 +2263,7 @@
                 });
                 return {
                     currentView, mobileMenuOpen, importText, parsedData, members, batches, currentBatchId, currentBatch, batchDays,
-                    memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth, resetToBatchMonth,
+                    memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth, resetToBatchMonth, shouldShowResetButton,
                     showMemberModal, memberModalTitle, memberModalFilters, filteredMembersForModal, currentPoolMembers, topNCount, editModalPoolMembers,
                     showScheduleConfigModal, scheduleConfigRole, scheduleConfig, schedulePreview,
                     showEditModal, editModalDate, editModalRole, editModalValue, showCloudConfig, showHelpModal, showAddPersonModal, newPerson, newBatch, cloud,
