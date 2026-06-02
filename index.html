@@ -653,7 +653,10 @@
                     </div>
                 </div>
                 <div class="p-4 flex-1 overflow-y-auto">
-                    <button @click="selectAllFiltered" class="mb-3 px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 touch-target">✅ 全选当前筛选结果</button>
+                    <div class="flex gap-2 mb-3">
+                        <button @click="selectAllFiltered" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200 touch-target">✅ 全选当前筛选结果</button>
+                        <button @click="openBatchEditTimes" :disabled="currentPoolMembers.length === 0" class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200 touch-target disabled:opacity-50 disabled:cursor-not-allowed">🔧 批量修改次数</button>
+                    </div>
                     <div class="space-y-2">
                         <div v-for="m in filteredMembersForModal" :key="m.id" @click="toggleMemberSelection(m.id)" class="flex items-center p-3 border rounded cursor-pointer hover:bg-gray-50 transition" :class="isMemberInPool(m.id) ? 'bg-blue-50 border-blue-300' : ''">
                             <div class="w-5 h-5 border-2 rounded flex items-center justify-center mr-3 flex-shrink-0" :class="isMemberInPool(m.id) ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'"><span v-if="isMemberInPool(m.id)" class="text-xs">✓</span></div>
@@ -724,6 +727,22 @@
                     <button @click="confirmManualEdit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 touch-target">保存</button>
                 </div>
              </div>
+        </div>
+
+        <!-- 批量修改次数弹窗 -->
+        <div v-if="showBatchEditTimesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="font-bold text-lg mb-4">🔧 批量修改次数</h3>
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-3">当前池子已选 {{ currentPoolMembers.length }} 人，将为所有成员设置相同的排班次数。</p>
+                    <label class="text-sm font-medium text-gray-700 block mb-2">统一排班次数</label>
+                    <input v-model.number="batchEditTimesValue" type="number" min="1" class="w-full p-3 border rounded-lg text-lg" placeholder="请输入次数">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button @click="closeBatchEditTimes" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 touch-target">取消</button>
+                    <button @click="confirmBatchEditTimes" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 touch-target">确认修改</button>
+                </div>
+            </div>
         </div>
 
         <!-- 新增人员弹窗 -->
@@ -1128,6 +1147,8 @@
                 const editModalDate = ref('');
                 const editModalRole = ref('');
                 const editModalValue = ref(null);
+                const showBatchEditTimesModal = ref(false);
+                const batchEditTimesValue = ref(1);
                 const showCloudConfig = ref(false);
                 const showHelpModal = ref(false); // 使用说明弹窗
                 const showAddPersonModal = ref(false);
@@ -1608,41 +1629,36 @@
                         membersWithCount.sort((a,b) => o==='desc' ? (b[f]||0)-(a[f]||0) : (a[f]||0)-(b[f]||0));
                     } else { membersWithCount.sort(() => Math.random()-0.5); }
                     
-                    // 智能排期：避开与另一角色的冲突
+                    // 智能排期：避开与另一角色的冲突，采用轮询方式均匀分配
                     const otherRole = role === 'leader' ? 'guard' : 'leader';
-                    const preview = []; let idx = 0;
+                    const preview = [];
+                    
+                    // 使用轮询算法：每次从剩余次数最多的成员中选择（保证均匀分布）
                     days.forEach(d => {
                         // 获取该日期另一角色的人员ID
                         const otherRoleId = batch.schedule[d.date]?.[otherRole];
                         
-                        // 尝试找到不冲突的成员
-                        let assigned = false;
-                        let attempts = 0;
-                        const maxAttempts = membersWithCount.length;
+                        // 过滤出可用且不冲突的成员
+                        const availableMembers = membersWithCount.filter(m => m.id !== otherRoleId && m.remaining > 0);
                         
-                        while(!assigned && attempts < maxAttempts) {
-                            const cand = membersWithCount[idx % membersWithCount.length];
-                            if(cand && cand.id !== otherRoleId) {
-                                // 不冲突，可以安排
-                                preview.push({ date: d.date, memberName: cand.name });
-                                cand.remaining--;
-                                if(cand.remaining <= 0) {
-                                    membersWithCount.splice(idx % membersWithCount.length, 1);
-                                } else {
-                                    idx++;
-                                }
-                                assigned = true;
-                            } else {
-                                // 冲突或无效，尝试下一个
-                                idx++;
-                                attempts++;
+                        if(availableMembers.length === 0) {
+                            console.warn(`日期 ${d.date} 无法安排${role === 'leader' ? '队长' : '护卫'}，所有候选人都与${otherRole === 'leader' ? '队长' : '护卫'}冲突或次数已用完`);
+                            return;
+                        }
+                        
+                        // 策略：优先选择剩余次数最多的成员，如果相同则保持原有排序
+                        availableMembers.sort((a, b) => {
+                            if(b.remaining !== a.remaining) {
+                                return b.remaining - a.remaining; // 剩余次数多的优先
                             }
-                        }
+                            // 如果剩余次数相同，保持原排序（战力/阶级等）
+                            return 0;
+                        });
                         
-                        // 如果所有成员都冲突，记录警告
-                        if(!assigned) {
-                            console.warn(`日期 ${d.date} 无法安排${role === 'leader' ? '队长' : '护卫'}，所有候选人都与${otherRole === 'leader' ? '队长' : '护卫'}冲突`);
-                        }
+                        // 选择第一个（剩余次数最多）的成员
+                        const selectedMember = availableMembers[0];
+                        preview.push({ date: d.date, memberName: selectedMember.name });
+                        selectedMember.remaining--;
                     });
                     schedulePreview.value = preview;
                 };
@@ -1768,6 +1784,38 @@
                             console.log(`验证: ${newValue} 当前已排${role === 'leader' ? '队长' : '护卫'}次数:`, verifyCount);
                         }, 100);
                     }
+                };
+                
+                // 批量修改次数相关函数
+                const openBatchEditTimes = () => {
+                    batchEditTimesValue.value = 1;
+                    showBatchEditTimesModal.value = true;
+                };
+                const closeBatchEditTimes = () => {
+                    showBatchEditTimesModal.value = false;
+                };
+                const confirmBatchEditTimes = () => {
+                    if(!batchEditTimesValue.value || batchEditTimesValue.value < 1) {
+                        showToast('请输入有效的次数', 'error');
+                        return;
+                    }
+                    
+                    const pool = memberModalTargetRole.value === 'leader' ? memberModalTargetBatch.value.leaderPool : memberModalTargetBatch.value.guardPool;
+                    const count = pool.members.length;
+                    
+                    if(count === 0) {
+                        showToast('池子中没有成员', 'warning');
+                        return;
+                    }
+                    
+                    // 批量修改所有成员的次数
+                    pool.members.forEach(pm => {
+                        pm.maxTimes = batchEditTimesValue.value;
+                    });
+                    
+                    saveData();
+                    closeBatchEditTimes();
+                    showToast(`✅ 已为 ${count} 名成员设置排班次数为 ${batchEditTimesValue.value}`);
                 };
                 // 直接更新排期（用于下拉框）
                 const updateSchedule = (date, role, value) => {
@@ -2461,7 +2509,10 @@
                     memberFilters, filteredMembers, existingMemberIds, calendarDate, calendarDays, changeMonth,
                     showMemberModal, memberModalTitle, memberModalFilters, filteredMembersForModal, currentPoolMembers, topNCount, editModalPoolMembers,
                     showScheduleConfigModal, scheduleConfigRole, scheduleConfig, schedulePreview,
-                    showEditModal, editModalDate, editModalRole, editModalValue, showCloudConfig, showHelpModal, showAddPersonModal, newPerson, newBatch, cloud,
+                    showEditModal, editModalDate, editModalRole, editModalValue, 
+                    showBatchEditTimesModal, batchEditTimesValue,
+                    openBatchEditTimes, closeBatchEditTimes, confirmBatchEditTimes,
+                    showCloudConfig, showHelpModal, showAddPersonModal, newPerson, newBatch, cloud,
                     
                     parseImport, confirmImport, deleteMember, clearAllMembers, resetMemberFilters, openAddPersonModal, confirmAddPerson,
                     createBatch, deleteBatch, getBatchDaysCount,
